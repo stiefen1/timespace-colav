@@ -8,9 +8,11 @@ setup(
     author_email="stephen.monnet@outlook.com",
     packages=find_packages(),
     install_requires=[
-        "numpy",
-        "scipy",
-        "matplotlib",
+        "numpy>=1.20.0",
+        "scipy>=1.7.0",
+        "matplotlib>=3.5.0",
+        "shapely>=2.0.0",
+        "networkx>=2.6.0",
     ],
     python_requires=">=3.6",
     classifiers=[

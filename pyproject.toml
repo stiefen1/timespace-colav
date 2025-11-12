@@ -9,9 +9,11 @@ description = "Time-space collision avoidance library"
 readme = "README.md"
 requires-python = ">=3.6"
 dependencies = [
-    "numpy",
-    "scipy",
-    "matplotlib",
+    "numpy>=1.20.0",
+    "scipy>=1.7.0", 
+    "matplotlib>=3.5.0",
+    "shapely>=2.0.0",
+    "networkx>=2.6.0",
 ]
 
 [project.optional-dependencies]
