@@ -4,6 +4,10 @@ from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.transform import Rotation
 
+"""
+Typical use case:
+
+"""
 class Plane:
     def __init__(
             self,
@@ -48,6 +52,11 @@ class Plane:
         """
         Evaluate time at (x, y) according to the plane equation.
         """
+        assert isinstance(x, float) or isinstance(x, np.ndarray), f"x must be a float or a numpy array. Got type(x)={type(x)}"
+        assert isinstance(y, float) or isinstance(y, np.ndarray), f"y must be a float or a numpy array. Got type(x)={type(y)}"
+        if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
+            assert x.shape == y.shape, f"x and y must have same shapes. Got x.shape={x.shape} and y.shape={y.shape}"
+
         bx, by, bt = self._b_ts.tolist()
         return bx*x + by*y + bt
 

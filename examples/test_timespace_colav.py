@@ -1,10 +1,10 @@
 from colav.timespace import Plane
-from colav.obstacle import Obstacle
-from colav import TimespaceColav
+from colav.obstacles import MovingObstacle
+from colav.planner import TimeSpaceColav
 import matplotlib.pyplot as plt
 
-obs = Obstacle()
-colav = TimespaceColav()
+# obs = MovingObstacle()
+colav = TimeSpaceColav()
 
 
 t0, p0 = 1, (1, 2)

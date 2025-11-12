@@ -4,8 +4,8 @@ setup(
     name="timespace-colav",
     version="0.1.0",
     description="Time-space collision avoidance library",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Stephen Monnet",
+    author_email="stephen.monnet@outlook.com",
     packages=find_packages(),
     install_requires=[
         "numpy",

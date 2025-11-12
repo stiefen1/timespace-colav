@@ -1,0 +1,4 @@
+"""
+Typical use case:
+
+"""
