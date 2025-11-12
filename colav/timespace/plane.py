@@ -2,7 +2,7 @@ from typing import List, Tuple
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
-from scipy.spatial.transform import Rotation
+from colav.path.pwl import PWLPath
 
 """
 Typical use case:
@@ -60,9 +60,11 @@ class Plane:
         bx, by, bt = self._b_ts.tolist()
         return bx*x + by*y + bt
 
-    def intersection(self, vertices: List[ Tuple[float, float] ], velocity: Tuple[float, float]) -> Tuple[ List[ Tuple[float, float] ], List[float] ]:
+    def intersection(self, vertices: List[ Tuple[float, float] ], velocity: Tuple[float, float]) -> Tuple[ List[ Tuple[float, float] ], List[float], bool ]:
         """
         Compute the intersection between timespace plane and a list of vertices moving at a given (constant) velocity.
+
+        Check whether the spatio-temporal obstacle is in past (valid=False) or future (valid=True)
         """
         assert len(velocity) == 2, f"velocity must be a 2D tuple. Got velocity={velocity}"
         
@@ -77,6 +79,7 @@ class Plane:
             raise ValueError(f"The obstacle is moving parallely to the plane. Try to slightly change its speed.")
 
         projected_vertices, times = [], []
+        valid = False
         for px_i, py_i in vertices:
             p_i = np.array([px_i, py_i])
 
@@ -88,7 +91,10 @@ class Plane:
             # Save intersection
             projected_vertices.append((float(x_i), float(y_i)))
             times.append(float(t_i))
-        return projected_vertices, times
+
+            if t_i >= 0:
+                valid = True
+        return projected_vertices, times, valid
         
     def plot(self, *args, ax: Axes3D | None = None, xlim:Tuple[float, float] | None = None, ylim:Tuple[float, float] | None = None, zlim:Tuple[float, float] | None = None, grid:Tuple[int, int] = (10, 10), **kwargs) -> Axes:
         """

@@ -1,3 +1,7 @@
+"""
+Useful functions to translate/rotate geometries.
+"""
+
 from typing import List, Tuple
 from colav.utils.math import rotation_matrix
 import numpy as np

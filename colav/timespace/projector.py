@@ -1,6 +1,9 @@
 from colav.timespace.plane import Plane
-from colav.obstacles.obstacle import MovingObstacle
+from colav.obstacles.moving import MovingObstacle
+from colav.path.pwl import PWLTrajectory, PWLPath
 from typing import List, Tuple
+from shapely import Polygon
+import numpy as np
 
 """
 Typical use case:
@@ -21,10 +24,9 @@ class TimeSpaceProjector:
             self,
             v_des: float
     ):
-        assert v_des > 0, f"Desired speed must be > 0. Got {v_des:.1f}"
-        self._v_des = v_des
+        self.v_des = v_des
 
-    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingObstacle]) -> List[ Tuple[float, float] ]:
+    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingObstacle]) -> List[ Polygon ]:
         """
         Convert a list of moving obstacles into a list of static obstacles as list of vertices.
         The projection is done using a timespace plane designed to reach p_des from p with a desired velocity. 
@@ -39,19 +41,22 @@ class TimeSpaceProjector:
         projected_obstacles = []    
         for obs in obstacles:
             # Compute intersection between moving obstacle and timespace plane
-            projected_vertices, times = self._plane.intersection(obs.geometry, obs.velocity)
-            
-            # Check if any intersection occurs in the future
-            valid = False
-            for t in times:
-                if t >= 0:
-                    valid = True
+            projected_vertices, times, valid = self._plane.intersection(obs.geometry, obs.velocity)
 
             # If at least one intersectio occurs in the future, obstacle is valid
             if valid:
-                projected_obstacles.append(projected_vertices)
+                projected_obstacles.append(Polygon(projected_vertices))
 
         return projected_obstacles
+    
+    def add_timestamps(self, path: PWLPath) -> PWLTrajectory:
+        if self._plane is not None:
+            xy = np.array(path.xy)
+            t = self._plane.get_time(xy[:, 0], xy[:, 1])[:, None]
+            xyt = np.concatenate([xy, t], axis=1)
+            return PWLTrajectory(xyt.tolist())
+        else:
+            raise ValueError(f"Plane is None. Try calling .get() first to initialize timespace plane.")
     
     @property
     def plane(self) -> Plane | None:
@@ -61,16 +66,24 @@ class TimeSpaceProjector:
     def v_des(self) -> float:
         return self._v_des
     
+    @v_des.setter
+    def v_des(self, val: float) -> None:
+        assert val > 0, f"Desired speed must be > 0. Got {val:.1f}"
+        self._v_des = val
+    
 if __name__ == "__main__":
-    from colav.obstacles import MovingObstacle, SHIP
+    from colav.obstacles import MovingObstacle, SHIP, MovingShip
     import matplotlib.pyplot as plt
 
-    obs = MovingObstacle.from_body((0, -20), 45, 2**0.5, 0, SHIP(10, 3), degrees=True)
+    obs = MovingShip.from_body((20, -40), 0, 2, 0, 10, 3, degrees=True)
     os = MovingObstacle((-20, -20), 45, (1, 1), SHIP(10, 3), degrees=True)
     projector = TimeSpaceProjector(2)
-    projected_obs = projector.get((-20, -20), (20, 20), [obs])
+    projected_obstacles = projector.get((-20, -20), (20, 20), [obs.buffer(1)])
 
-    ax = obs.plot()
-    ax.scatter(*zip(*os.geometry))
-    ax.scatter(*zip(*projected_obs[0]))
+    ax = obs.plot(c='red')
+    os.fill(ax=ax, c='blue')
+    for proj_obs in projected_obstacles:
+        ax.fill(*proj_obs.exterior.xy, c='red', alpha=0.5)
+    ax.set_xlim((-80, 80))
+    ax.set_ylim((-80, 80))
     plt.show()

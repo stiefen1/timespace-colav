@@ -1,3 +1,7 @@
+"""
+Defines typical shapes to be used as moving obstacles.
+"""
+
 from shapely import Point, affinity, simplify
 
 SHIP = lambda loa, beam: [

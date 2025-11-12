@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 from colav.obstacles.transform import get_shape_at_xypsi
+from colav.obstacles.shapes import SHIP
 from colav.utils.math import rotation_matrix
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt, numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import shapely
+from copy import deepcopy
 
 class MovingObstacle:
     def __init__(
@@ -23,13 +26,19 @@ class MovingObstacle:
         self.geometry_at_psi_equal_0 = geometry_at_psi_equal_0
         self.degrees = degrees
         self.mmsi = mmsi
-        self.geometry = get_shape_at_xypsi(*self.position, self.psi, self.geometry_at_psi_equal_0, degrees=self.degrees)
+        
+        self.reset_geometry()
         
         # Compute speed in body frame
         R = rotation_matrix(self.psi, degrees=self.degrees)
         uv = R.T[0:2, 0:2] @ np.array([self.velocity[1], self.velocity[0]])
         self.u = float(uv[0])
         self.v = float(uv[1])
+
+    def reset_geometry(self) -> None:
+         # Get the transformed geometry points 
+        print(self.geometry_at_psi_equal_0) 
+        self.geometry = get_shape_at_xypsi(*self.position, self.psi, self.geometry_at_psi_equal_0, degrees=self.degrees)
 
     def plot(self, *args, ax: Axes | Axes3D | None = None, t: float | None = 0, **kwargs) -> Axes | Axes3D:
         if ax is None:
@@ -41,6 +50,16 @@ class MovingObstacle:
         else:
             raise TypeError(f"ax must be an instance of Axes. Got type(ax)={type(ax)}")
         return ax
+    
+    def buffer(self, distance: float, **kwargs) -> "MovingObstacle":
+        """
+        join_style='mitre' is one of the keywords argument you can pass.
+        """
+        new_self = deepcopy(self)
+        new_geometry_as_polygon = shapely.buffer(shapely.Polygon(self.geometry_at_psi_equal_0), distance, **kwargs)
+        new_self.geometry_at_psi_equal_0 = list(zip(*new_geometry_as_polygon.exterior.xy))
+        new_self.reset_geometry()
+        return new_self
     
     @staticmethod
     def from_body(position: Tuple[float, float], psi: float, u: float, v: float, geometry_at_psi_equal_0: List[ Tuple[float, float] ], degrees: bool = False, mmsi: int | None = None) -> "MovingObstacle":
@@ -90,7 +109,18 @@ class MovingShip(MovingObstacle):
         degrees: bool = False,
         mmsi: int | None = None
     ):
-        return super().__init__(position, psi, velocity, SHIP(loa, beam), degrees=degrees, mmsi=mmsi)
+        super().__init__(position, psi, velocity, SHIP(loa, beam), degrees=degrees, mmsi=mmsi)
+
+    @staticmethod
+    def from_body(position: Tuple[float, float], psi: float, u: float, v: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: int | None = None, **kwargs) -> "MovingObstacle":
+        """
+        Return a MovingObstacle object using speed in body frame.
+        """
+        
+        R = rotation_matrix(psi, degrees=degrees)
+        velocity = R[0:2, 0:2] @ np.array([u, v]) # velocity in N-E frame
+        return MovingShip(position, psi, (float(velocity[1]), float(velocity[0])), loa, beam, degrees=degrees, mmsi=mmsi)
+    
 
 if __name__ == "__main__":
     from colav.obstacles import SHIP
