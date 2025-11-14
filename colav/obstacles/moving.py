@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from colav.obstacles.transform import get_shape_at_xypsi
 from colav.obstacles.shapes import SHIP
 from colav.utils.math import rotation_matrix
+from colav.utils import generate_random_mmsi
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt, numpy as np
@@ -18,14 +19,14 @@ class MovingObstacle:
         velocity: Tuple[float, float],
         geometry_at_psi_equal_0: List[ Tuple[float, float] ],
         degrees: bool = False,
-        mmsi: int | None = None
+        mmsi: Optional[int] = None
     ):
         self.position = position
         self.psi = psi
         self.velocity = velocity
         self.geometry_at_psi_equal_0 = geometry_at_psi_equal_0
         self.degrees = degrees
-        self.mmsi = mmsi
+        self.mmsi: int = mmsi or -generate_random_mmsi() # Negative mmsi to highlight fake ships
         
         self.reset_geometry()
         
