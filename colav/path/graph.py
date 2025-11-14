@@ -75,7 +75,7 @@ def relocate_colliding_point(
         colliding = False
         for obs in obstacles:
             if obs.contains(Point(p_coll)):
-                logger.info(f"{p_coll} is colliding with an obstacle, relocating (iteration {i+1}/{max_iter})")
+                logger.warning(f"{p_coll} is colliding with an obstacle, relocating (iteration {i+1}/{max_iter})")
                 colliding = True
                 line_from_p_coll_to_p_target = LineString([p_coll, p_target])
                 new_p_coll = line_from_p_coll_to_p_target.intersection(obs.buffer(buffer_distance).exterior)
