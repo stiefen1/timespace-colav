@@ -88,7 +88,7 @@ class TimeSpaceColav:
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
 
-                return traj
+                return traj # TODO: Returns necessary speed and heading to reach first waypoint. 
 
 
         # if max_iter was reached, returns None
