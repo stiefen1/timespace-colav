@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from colav.obstacles.transform import get_shape_at_xypsi
 from colav.obstacles.shapes import SHIP
 from colav.utils.math import rotation_matrix
@@ -37,7 +37,7 @@ class MovingObstacle:
 
     def reset_geometry(self) -> None:
          # Get the transformed geometry points 
-        print(self.geometry_at_psi_equal_0) 
+        # print(self.geometry_at_psi_equal_0) 
         self.geometry = get_shape_at_xypsi(*self.position, self.psi, self.geometry_at_psi_equal_0, degrees=self.degrees)
 
     def plot(self, *args, ax: Axes | Axes3D | None = None, t: float | None = 0, **kwargs) -> Axes | Axes3D:
@@ -101,9 +101,9 @@ class MovingShip(MovingObstacle):
     """
     def __init__(
         self,
-        position: Tuple[float, float],
+        position: Tuple[float, float], # XY = East, North
         psi: float,
-        velocity: Tuple[float, float],
+        velocity: Tuple[float, float], # World frame XY
         loa: float,
         beam: float,
         degrees: bool = False,
@@ -121,6 +121,14 @@ class MovingShip(MovingObstacle):
         velocity = R[0:2, 0:2] @ np.array([u, v]) # velocity in N-E frame
         return MovingShip(position, psi, (float(velocity[1]), float(velocity[0])), loa, beam, degrees=degrees, mmsi=mmsi)
     
+    @staticmethod
+    def from_csog(position: Tuple[float, float], psi: float, cog: float, sog: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: Optional[int] = None, **kwargs) -> "MovingObstacle":
+        # Convert course-over-ground, speed-over-ground into u, v
+        cog = np.deg2rad(cog)
+        x_dot = sog * np.sin(cog) # = east speed
+        y_dot = sog * np.cos(cog) # = north speed
+        return MovingShip(position, psi, (x_dot, y_dot), loa=loa, beam=beam, degrees=degrees, mmsi=mmsi)
+
 
 if __name__ == "__main__":
     from colav.obstacles import SHIP
