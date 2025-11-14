@@ -41,6 +41,10 @@ class MovingObstacle:
         # print(self.geometry_at_psi_equal_0) 
         self.geometry = get_shape_at_xypsi(*self.position, self.psi, self.geometry_at_psi_equal_0, degrees=self.degrees)
 
+    def distance(self, x: float, y: float) -> float:
+        """Returns distance of TS from (x, y)"""
+        return ((x-self.position[0])**2 + (y-self.position[1])**2)**0.5
+
     def plot(self, *args, ax: Axes | Axes3D | None = None, t: float | None = 0, **kwargs) -> Axes | Axes3D:
         if ax is None:
             _, ax = plt.subplots()

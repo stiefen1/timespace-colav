@@ -18,6 +18,18 @@ class PWLTrajectory:
         point = self._linestring.interpolate(distance, normalized=normalized)
         return point.x, point.y, point.z
     
+    def plot(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+        ax.plot(*self._linestring.coords.xy, *args, **kwargs)
+        return ax
+    
+    def scatter(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+        ax.scatter(*self._linestring.coords.xy, *args, **kwargs)
+        return ax
+    
     @property
     def xyt(self) -> List[ Tuple[float, float, float] ]:
         return [(point[0], point[1], point[2]) for point in self._linestring.coords]
