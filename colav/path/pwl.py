@@ -1,6 +1,7 @@
 from typing import List, Tuple, Optional
 from shapely import LineString
-
+from matplotlib.axes import Axes
+import matplotlib.pyplot as plt
 """
 Typical use case:
 
@@ -32,6 +33,18 @@ class PWLPath:
     def interpolate(self, distance: float, normalized=False) -> Tuple[float, float]:
         point = self._linestring.interpolate(distance, normalized=normalized)
         return point.x, point.y
+    
+    def plot(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+        ax.plot(*self._linestring.coords.xy, *args, **kwargs)
+        return ax
+    
+    def scatter(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
+        if ax is None:
+            _, ax = plt.subplots()
+        ax.scatter(*self._linestring.coords.xy, *args, **kwargs)
+        return ax
     
     @property
     def xy(self) -> List[ Tuple[float, float] ]:

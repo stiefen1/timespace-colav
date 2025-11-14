@@ -9,6 +9,7 @@ from colav.obstacles import MovingObstacle
 from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
+from colav.path.graph import VisibilityGraph as VG
 import shapely
 
 class TimeSpaceColav:
@@ -59,7 +60,6 @@ class TimeSpaceColav:
         """
         buffered_obstacles = [obs.buffer(margin, **kwargs) for obs in obstacles]
 
-        path_exist = False
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
             self.projector.v_des = (self.speed_factor**k) * self.desired_speed
@@ -72,15 +72,18 @@ class TimeSpaceColav:
             )
 
             # Create path planner
+            path_planner = VG(
+                p0,
+                pf,
+                obstacles={obs.mmsi: proj_obs for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)},
+                edge_filters=[
+                    # e.g. colregs / yaw rate / speed filters
+                ]
+            )
 
-            # Add heading & speed constraints
-
-            # Check whether a path between p0 and pf exist or not
-            path_exist = ...
-
-            if path_exist: 
+            if path_planner.has_path(): 
                 # Compute optimal path
-                path: PWLPath = ...
+                path: PWLPath = path_planner.get_dijkstra_path()
 
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
