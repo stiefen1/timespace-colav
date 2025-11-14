@@ -2,7 +2,8 @@ from typing import List, Tuple
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
-from colav.path.pwl import PWLPath
+import logging
+logger = logging.getLogger(__name__)
 
 """
 Typical use case:
@@ -23,6 +24,7 @@ class Plane:
         self._p0_ts = (*p0, t0) # Initial position in timespace
         self._pf_ts = (*pf, tf) # Final position in timespace
         self._update_plane()
+        logger.debug(f"Successfuly created Plane.")
         
     def _update_plane(self) -> None:
         """
@@ -47,6 +49,8 @@ class Plane:
         sol = np.linalg.inv(A) @ t_vec
         self._b_ts: np.ndarray = sol[0:3]
         self._alpha = float(sol[3])
+
+        logger.debug(f"Plane was succesfully updated.")
 
     def get_time(self, x: float | np.ndarray, y: float | np.ndarray) -> float | np.ndarray:
         """
@@ -94,6 +98,7 @@ class Plane:
 
             if t_i >= 0:
                 valid = True
+                
         return projected_vertices, times, valid
         
     def plot(self, *args, ax: Axes3D | None = None, xlim:Tuple[float, float] | None = None, ylim:Tuple[float, float] | None = None, zlim:Tuple[float, float] | None = None, grid:Tuple[int, int] = (10, 10), **kwargs) -> Axes:
@@ -165,7 +170,7 @@ if __name__ == "__main__":
     
     plane = Plane(p0, pf, t0, tf)
     print(plane.intersection(toy_obstacle, velocity))
-    inter, ts = plane.intersection(toy_obstacle, velocity)
+    inter, ts, valid = plane.intersection(toy_obstacle, velocity)
 
     ax = plane.plot(alpha=0.3)
     ax.scatter(*zip(*toy_obstacle), c='green')

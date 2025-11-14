@@ -3,8 +3,8 @@ from colav.obstacles.moving import MovingObstacle
 from colav.path.pwl import PWLTrajectory, PWLPath
 from typing import List, Tuple
 from shapely import Polygon
-import numpy as np
-
+import numpy as np, logging
+logger = logging.getLogger(__name__)
 """
 Typical use case:
 
@@ -31,7 +31,8 @@ class TimeSpaceProjector:
         Convert a list of moving obstacles into a list of static obstacles as list of vertices.
         The projection is done using a timespace plane designed to reach p_des from p with a desired velocity. 
         """
-        
+        logger.debug(f"Received {len(obstacles)} obstacles.")
+
         # Create timespace plane
         dp = ((p_des[1] - p[1])**2 + (p_des[0] - p[0])**2)**0.5
         dt = dp / self._v_des
@@ -46,6 +47,8 @@ class TimeSpaceProjector:
             # If at least one intersectio occurs in the future, obstacle is valid
             if valid:
                 projected_obstacles.append(Polygon(projected_vertices))
+
+        logger.debug(f"{len(projected_obstacles)} obstacles have been projected.")
 
         return projected_obstacles
     

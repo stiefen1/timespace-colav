@@ -1,10 +1,11 @@
 from colav.timespace import Plane
 from colav.obstacles import MovingObstacle
 from colav.planner import TimeSpaceColav
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, logging, colav
+colav.configure_logging(level=logging.INFO)
 
 # obs = MovingObstacle()
-colav = TimeSpaceColav()
+ts_colav = TimeSpaceColav(3)
 
 
 t0, p0 = 1, (1, 2)
@@ -14,8 +15,7 @@ toy_obstacle = [(2., 5), (2, 6), (3, 6), (3, 5)]
 velocity = 1/10, 1/10
 
 plane = Plane(p0, pf, t0, tf)
-print(plane.intersection(toy_obstacle, velocity))
-inter, ts = plane.intersection(toy_obstacle, velocity)
+inter, ts, valid = plane.intersection(toy_obstacle, velocity)
 
 ax = plane.plot(alpha=0.3)
 ax.scatter(*zip(*toy_obstacle), c='green')

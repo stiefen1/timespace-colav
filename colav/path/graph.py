@@ -11,7 +11,8 @@ from colav.obstacles.moving import MovingObstacle
 from colav.path.pwl import PWLPath
 from matplotlib.axes import Axes
 from shapely import Polygon, Point, LineString, MultiPoint
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, logging
+logger = logging.getLogger(__name__)
 
 
 def is_edge_visible(edge: LineString, obstacles: List[Polygon]) -> bool:
@@ -74,7 +75,7 @@ def relocate_colliding_point(
         colliding = False
         for obs in obstacles:
             if obs.contains(Point(p_coll)):
-                print(f"{p_coll} is colliding with an obstacle, relocating (iteration {i+1}/{max_iter})")
+                logger.info(f"{p_coll} is colliding with an obstacle, relocating (iteration {i+1}/{max_iter})")
                 colliding = True
                 line_from_p_coll_to_p_target = LineString([p_coll, p_target])
                 new_p_coll = line_from_p_coll_to_p_target.intersection(obs.buffer(buffer_distance).exterior)
@@ -84,7 +85,7 @@ def relocate_colliding_point(
                 p_coll = (new_p_coll.x, new_p_coll.y)
                 break
         if not colliding:
-            print(f"Successfully relocated point to {p_coll} in {i} iterations.")
+            logger.info(f"Successfully relocated point to {p_coll} in {i} iterations.")
             return p_coll
     return p_coll
 
@@ -122,11 +123,9 @@ class VisibilityGraph(nx.DiGraph):
 
         # Initialize graph and populate with nodes and edges
         super().__init__()
-        print("populating nodes")
         self.populate_nodes(**kwargs)
-        print("populating edges")
         self.populate_edges(**kwargs)
-        print("all done")
+        logger.debug(f"Succesfully created VisibilityGraph.")
 
     def populate_nodes(self, relocation_buffer_distance: float = 1e-3, **kwargs) -> None:
         """
@@ -142,6 +141,8 @@ class VisibilityGraph(nx.DiGraph):
 
         # Ensure start and end points are not inside obstacles
         obstacles_list = list(self.obstacles.values())
+        logger.debug(f"Received {len(obstacles_list)} obstacles, start populating nodes.")
+
         for obs in obstacles_list:
             if obs.contains(Point(self.p_0)):
                 self.p_0 = relocate_colliding_point(
@@ -156,6 +157,7 @@ class VisibilityGraph(nx.DiGraph):
         self.add_node(0, pos=self.p_0, id=0)
         
         # Add obstacle vertex nodes
+        i: int = 0
         for obstacle_id, polygon in self.obstacles.items():
             assert obstacle_id > 0, f"Obstacle ID must be > 0. Got {obstacle_id}"
             
@@ -168,6 +170,10 @@ class VisibilityGraph(nx.DiGraph):
         
         # Add end node
         self.add_node(-1, pos=self.p_f, id=-1)
+        logger.debug(f"Successfully populated {node_idx} nodes.")
+
+        if i > 100:
+            logger.warning(f"Graph contains {node_idx} > 100 nodes, potentially leading to high computational demand. Try to simplify the obstacles shape using shapely.simplify() method.")
 
     def populate_edges(self, **kwargs) -> None:
         """
@@ -181,6 +187,8 @@ class VisibilityGraph(nx.DiGraph):
             **kwargs: Additional arguments passed to edge filters
         """
         obstacles_list = list(self.obstacles.values())
+
+        logger.debug(f"Received {len(obstacles_list)} obstacles, start populating edges.")
         
         for node_1 in self.nodes:
             for node_2 in self.nodes:
@@ -203,6 +211,8 @@ class VisibilityGraph(nx.DiGraph):
                     # Add edge if it passes filters and is collision-free
                     if valid and is_edge_visible(edge_line, obstacles_list):
                         self.add_edge(node_1, node_2, weight=edge_line.length)
+
+        logger.debug(f"Graph was successfully populated.")
 
     def has_path(self) -> bool:
         return nx.has_path(self, source=0, target=-1)

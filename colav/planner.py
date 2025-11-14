@@ -10,7 +10,8 @@ from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
 from colav.path.graph import VisibilityGraph as VG
-import shapely
+import shapely, logging
+logger = logging.getLogger(__name__)
 
 class TimeSpaceColav:
     def __init__(
@@ -42,6 +43,8 @@ class TimeSpaceColav:
         self.path_planner = path_planner or PathPlanner()
         self.max_iter = max_iter
         self.speed_factor = speed_factor
+
+        logger.debug(f"Successfully initialized TimeSpaceColav")
 
     def get(
             self, 
@@ -103,11 +106,12 @@ class TimeSpaceColav:
 
 
         # if max_iter was reached, returns None
-        UserWarning(f"Max number of iterations reached: no valid trajectory was found. Try decreasing the speed_factor or increasing the max number of iterations")
+        logger.warning(f"Max number of iterations reached: no valid trajectory was found. Try decreasing the speed_factor or increasing the max number of iterations")
         return None
     
 if __name__ == "__main__":
-    from colav.obstacles.moving import MovingShip
-    planner = TimeSpaceColav(3)
+    import colav, logging
+    colav.configure_logging(level=logging.DEBUG)
+    planner = colav.TimeSpaceColav(3)
     # print(planner.get((0, 0), (100, 100), [MovingShip((20, 20), 30, (2, 2), 10, 4, degrees=True)])[0].geometry)
     
