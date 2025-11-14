@@ -16,6 +16,8 @@ class TimeSpaceColav:
     def __init__(
             self,
             desired_speed: float,
+            distance_threshold: float = 3e3, # Distance at which colav is enabled
+            shore: Optional[ List[shapely.Polygon] ] = None,
             max_speed: float = float('inf'),
             max_yaw_rate: float = float('inf'),
             colregs: bool = False,
@@ -30,6 +32,8 @@ class TimeSpaceColav:
         assert 0 < speed_factor <= 1, f"Speed factor must be in ]0, 1]. Got {speed_factor} instead."
 
         self.desired_speed = desired_speed
+        self.distance_threshold = distance_threshold
+        self.shore = shore or []
         self.max_speed = max_speed
         self.max_yaw_rate = max_yaw_rate
         self.colregs = colregs
@@ -48,7 +52,7 @@ class TimeSpaceColav:
             heading: Optional[float] = None, 
             margin: float = 0.0, 
             **kwargs
-        ) -> PWLTrajectory | None:
+        ) -> Optional[PWLTrajectory]:
         """
         Returns the shortest trajectory between p0 and pf to avoid obstacles as a piecewise-linear path parameterized in time.
 
@@ -58,7 +62,10 @@ class TimeSpaceColav:
 
         Keywords argument can be used to affect the shapely.buffer method's behaviour
         """
-        buffered_obstacles = [obs.buffer(margin, **kwargs) for obs in obstacles]
+        buffered_obstacles: List[MovingObstacle] = []
+        for obs in obstacles:
+            if obs.distance(*p0) <= self.distance_threshold:
+                buffered_obstacles.append(obs.buffer(margin, **kwargs))
 
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
@@ -71,19 +78,23 @@ class TimeSpaceColav:
                 buffered_obstacles
             )
 
+            # Convert projected (moving) obstacles and shore into dict
+            projected_obstacles_as_dict = {obs.mmsi: proj_obs for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)} 
+            shore_as_dict = {i+1: self.shore[i] for i in range(len(self.shore))}
+
             # Create path planner
-            path_planner = VG(
+            self.path_planner = VG(
                 p0,
                 pf,
-                obstacles={obs.mmsi: proj_obs for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)},
+                obstacles= projected_obstacles_as_dict | shore_as_dict,
                 edge_filters=[
                     # e.g. colregs / yaw rate / speed filters
                 ]
             )
 
-            if path_planner.has_path(): 
+            if self.path_planner.has_path(): 
                 # Compute optimal path
-                path: PWLPath = path_planner.get_dijkstra_path()
+                path: PWLPath = self.path_planner.get_dijkstra_path()
 
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
@@ -98,5 +109,5 @@ class TimeSpaceColav:
 if __name__ == "__main__":
     from colav.obstacles.moving import MovingShip
     planner = TimeSpaceColav(3)
-    print(planner.get((0, 0), (100, 100), [MovingShip((20, 20), 30, (2, 2), 10, 4, degrees=True)])[0].geometry)
+    # print(planner.get((0, 0), (100, 100), [MovingShip((20, 20), 30, (2, 2), 10, 4, degrees=True)])[0].geometry)
     

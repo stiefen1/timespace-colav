@@ -10,7 +10,7 @@ from typing import List, Tuple, Optional, Dict, Callable
 from colav.obstacles.moving import MovingObstacle
 from colav.path.pwl import PWLPath
 from matplotlib.axes import Axes
-from shapely import Polygon, Point, LineString
+from shapely import Polygon, Point, LineString, MultiPoint
 import matplotlib.pyplot as plt
 
 
@@ -78,6 +78,8 @@ def relocate_colliding_point(
                 colliding = True
                 line_from_p_coll_to_p_target = LineString([p_coll, p_target])
                 new_p_coll = line_from_p_coll_to_p_target.intersection(obs.buffer(buffer_distance).exterior)
+                if isinstance(new_p_coll, MultiPoint):
+                    new_p_coll = new_p_coll.geoms[-1]
                 assert isinstance(new_p_coll, Point), "Failed to relocate colliding point"
                 p_coll = (new_p_coll.x, new_p_coll.y)
                 break
@@ -120,8 +122,11 @@ class VisibilityGraph(nx.DiGraph):
 
         # Initialize graph and populate with nodes and edges
         super().__init__()
+        print("populating nodes")
         self.populate_nodes(**kwargs)
+        print("populating edges")
         self.populate_edges(**kwargs)
+        print("all done")
 
     def populate_nodes(self, relocation_buffer_distance: float = 1e-3, **kwargs) -> None:
         """
