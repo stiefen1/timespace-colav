@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional
 from shapely import LineString
 from matplotlib.axes import Axes
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, numpy as np
 """
 Typical use case:
 
@@ -30,10 +30,50 @@ class PWLTrajectory:
         ax.scatter(*self._linestring.coords.xy, *args, **kwargs)
         return ax
     
+    def get_heading(self, distance: float, normalized: bool = False, degrees:bool = False) -> float:
+        """
+        Returns the orientation of the backbone at a given progression value. Useful for integrating power consumption along corridor.
+        """
+        length = 1 if normalized else self._linestring.length
+        assert 0 <= distance <= length , f"distance must be within [0, {length:.1f}]. Got distance={distance:.2f}"
+        
+        if distance == 0:
+            prog_prev = 0
+            prog_next = 0.005 * length
+        else: # meaning 0 < progression <= length
+            prog_prev = 0.995 * distance
+            prog_next = distance
+
+        p1 = np.array(self._linestring.interpolate(prog_prev, normalized=normalized).xy).squeeze()
+        p2 = np.array(self._linestring.interpolate(prog_next, normalized=normalized).xy).squeeze()
+
+        heading_rad = np.atan2(p2[0]-p1[0], p2[1]-p1[1])
+        return np.rad2deg(heading_rad) if degrees else heading_rad
+    
+    def get_speed(self, distance: float, normalized: bool = False) -> float:
+        """
+        """
+        length = 1 if normalized else self._linestring.length
+        assert 0 <= distance <= length , f"distance must be within [0, {length:.1f}]. Got distance={distance:.2f}"
+        
+        if distance == 0:
+            prog_prev = 0
+            prog_next = 0.005 * length
+        else: # meaning 0 < progression <= length
+            prog_prev = 0.995 * distance
+            prog_next = distance
+
+        p1 = self._linestring.interpolate(prog_prev, normalized=normalized)
+        p2 = self._linestring.interpolate(prog_next, normalized=normalized)
+        return self.get_edge_speed((p1.x, p1.y, p1.z), (p2.x, p2.y, p2.z))
+    
+    def get_edge_speed(self, p1: Tuple[float, float, float], p2: Tuple[float, float, float]) -> float:
+        return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5 / (p2[2] - p1[2])
+
     @property
     def xyt(self) -> List[ Tuple[float, float, float] ]:
         return [(point[0], point[1], point[2]) for point in self._linestring.coords]
-
+    
     
 class PWLPath:
     def __init__(

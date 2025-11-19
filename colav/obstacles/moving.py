@@ -8,9 +8,11 @@ from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt, numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import shapely
+import shapely, logging
 from copy import deepcopy
+logger = logging.getLogger(__name__)
 
+# TODO: Implement Moving Ship with uncertainties
 class MovingObstacle:
     def __init__(
         self,
@@ -129,7 +131,7 @@ class MovingShip(MovingObstacle):
     @staticmethod
     def from_csog(position: Tuple[float, float], psi: float, cog: float, sog: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: Optional[int] = None, **kwargs) -> "MovingObstacle":
         # Convert course-over-ground, speed-over-ground into u, v
-        cog = np.deg2rad(cog)
+        cog = np.deg2rad(cog) if degrees else cog
         x_dot = sog * np.sin(cog) # = east speed
         y_dot = sog * np.cos(cog) # = north speed
         return MovingShip(position, psi, (x_dot, y_dot), loa=loa, beam=beam, degrees=degrees, mmsi=mmsi)

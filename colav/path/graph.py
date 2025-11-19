@@ -159,7 +159,7 @@ class VisibilityGraph(nx.DiGraph):
         # Add obstacle vertex nodes
         i: int = 0
         for obstacle_id, polygon in self.obstacles.items():
-            assert obstacle_id > 0, f"Obstacle ID must be > 0. Got {obstacle_id}"
+            assert obstacle_id != -1 and obstacle_id != 0, f"Obstacle ID must be != -1, 0. Got {obstacle_id}"
             
             # Add each vertex of the polygon (skip first as it equals last)
             for i, (x, y) in enumerate(zip(*polygon.exterior.xy)):
