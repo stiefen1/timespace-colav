@@ -9,6 +9,7 @@ import networkx as nx
 from typing import List, Tuple, Optional, Dict, Callable
 from colav.obstacles.moving import MovingObstacle
 from colav.path.pwl import PWLPath
+from colav.path.edge_filter import IEdgeFilter
 from matplotlib.axes import Axes
 from shapely import Polygon, Point, LineString, MultiPoint
 import matplotlib.pyplot as plt, logging
@@ -30,23 +31,6 @@ def is_edge_visible(edge: LineString, obstacles: List[Polygon]) -> bool:
         if (polygon.crosses(edge) and not polygon.touches(edge)) or edge.within(polygon):
             return False
     return True
-
-
-def max_angle_filter(node_1: Dict, node_2: Dict, max_angle: float = 30) -> bool:
-    """
-    Example edge filter based on angle constraint.
-    
-    Args:
-        node_1: First node with 'pos' attribute
-        node_2: Second node with 'pos' attribute  
-        max_angle: Maximum allowed angle (currently unused - demo filter)
-        
-    Returns:
-        True to allow edge, False to filter it out
-    """
-    # Currently allows all edges - implement angle logic as needed
-    return True
-
 
 def relocate_colliding_point(
     p_coll: Tuple[float, float], 
@@ -103,7 +87,7 @@ class VisibilityGraph(nx.DiGraph):
         p_0: Tuple[float, float],
         p_f: Tuple[float, float],
         obstacles: Optional[Dict[int, Polygon]] = None,
-        edge_filters: Optional[List[Callable[[Dict, Dict], bool]]] = None,
+        edge_filters: Optional[List[IEdgeFilter]] = None,
         **kwargs
     ):
         """
@@ -199,56 +183,35 @@ class VisibilityGraph(nx.DiGraph):
                         self.nodes[node_2]["pos"]
                     ])
 
+                    # Avoid using edge filters if edge is not even visible
+                    if not(is_edge_visible(edge_line, obstacles_list)):
+                        continue
+
                     # Apply all edge filters
                     valid = True
                     for edge_filter in self.edge_filters:
-                        valid = valid and edge_filter(
-                            self.nodes[node_1], 
-                            self.nodes[node_2], 
+                        valid_edge, info = edge_filter(
+                            self.nodes[node_1],
+                            self.nodes[node_2],
+                            graph=self.graph,
+                            idx1=node_1,
                             **kwargs
                         )
 
+                        valid = valid and valid_edge
+                        if not valid: # immediately break for loop if not valid
+                            break
+
                     # Add edge if it passes filters and is collision-free
-                    if valid and is_edge_visible(edge_line, obstacles_list):
+                    if valid:
                         self.add_edge(node_1, node_2, weight=edge_line.length)
 
         logger.debug(f"Graph was successfully populated.")
-
-    def has_path(self) -> bool:
-        return nx.has_path(self, source=0, target=-1)
-
-    def get_dijkstra_path(self) -> PWLPath:
-        """
-        Find shortest collision-free path using Dijkstra's algorithm.
-        
-        Returns:
-            PWLPath object containing waypoints from start to end
-        """
-        path_nodes = nx.dijkstra_path(self, source=0, target=-1, weight='weight')
-        waypoints = [self.nodes[node]["pos"] for node in path_nodes]
-        return PWLPath(waypoints)
-    
-    def plot(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
-        """
-        Plot the visibility graph.
-        
-        Args:
-            ax: Matplotlib axes to plot on (creates new if None)
-            *args, **kwargs: Additional arguments passed to networkx.draw()
-            
-        Returns:
-            Matplotlib axes object
-        """
-        if ax is None:
-            _, ax = plt.subplots()
-        
-        positions = nx.get_node_attributes(self, "pos")
-        nx.draw(self, pos=positions, ax=ax, *args, **kwargs)
-        return ax
     
 if __name__ == "__main__":
     # Example usage: path planning around two ship obstacles
     from colav.obstacles import MovingShip
+    from colav.path.planning import VGPathPlanner
     
     # Create two ship obstacles
     ship1 = MovingShip((0, 0), 30, (4, 3), 10, 3, degrees=True, mmsi=111)
@@ -259,11 +222,11 @@ if __name__ == "__main__":
     obs2 = Polygon(ship2.geometry)
     
     # Build visibility graph
-    graph = VisibilityGraph(
+    planner = VGPathPlanner(
         p_0=(-5, -5),          # Start point
         p_f=(15, 15),          # End point  
         obstacles={111: obs1, 222: obs2},
-        edge_filters=[max_angle_filter],
+        edge_filters=[],
         max_angle=-30
     )
     
@@ -271,12 +234,12 @@ if __name__ == "__main__":
     _, ax = plt.subplots(figsize=(10, 8))
     
     # Plot graph, obstacles, and optimal path
-    graph.plot(ax=ax, with_labels=True, node_color='lightblue', node_size=300)
+    planner.plot(ax=ax, with_labels=True, node_color='lightblue', node_size=300)
     ship1.fill(ax=ax, c='red', alpha=0.5, label='Ship 1')
     ship2.fill(ax=ax, c='red', alpha=0.5, label='Ship 2')
     
     # Plot shortest path
-    optimal_path = graph.get_dijkstra_path()
+    optimal_path = planner.get_dijkstra_path()
     optimal_path.plot(ax=ax, c='blue', linewidth=3, label='Optimal Path')
     
     ax.legend()

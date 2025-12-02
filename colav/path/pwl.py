@@ -10,7 +10,7 @@ Typical use case:
 class PWLTrajectory:
     def __init__(
             self,
-            xyt: List[ Tuple[float, float, float]]
+            xyt: List[ Tuple[float, float, float] ]
     ):
         self._linestring = LineString(xyt)
 

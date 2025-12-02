@@ -9,8 +9,11 @@ from colav.obstacles import MovingObstacle
 from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
-from colav.path.graph import VisibilityGraph as VG
+from colav.path.planning import VGPathPlanner
+from colav.timespace.constraints import SpeedConstraint, YawRateConstraint, COLREGS
 import shapely, logging
+from colav.utils.math import DEG2RAD, RAD2DEG, ssa
+from math import atan2
 logger = logging.getLogger(__name__)
 
 class TimeSpaceColav:
@@ -25,7 +28,8 @@ class TimeSpaceColav:
             good_seamanship: bool = False,
             path_planner: Optional[PathPlanner] = None,
             max_iter: int = 10, # Max iterations for finding a valid solution
-            speed_factor: float = 0.95 # At each iteration k, speed = speed_factor**k * desired_speed
+            speed_factor: float = 0.95, # At each iteration k, speed = speed_factor**k * desired_speed
+            degrees: bool = True
     ):
         assert desired_speed > 0, f"Desired speed must be > 0. Got {desired_speed} <= 0 instead."
         assert max_speed > 0, f"Maximum speed must be > 0. Got {max_speed} <= 0 instead."
@@ -35,14 +39,19 @@ class TimeSpaceColav:
         self.desired_speed = desired_speed
         self.distance_threshold = distance_threshold
         self.shore = shore or []
-        self.max_speed = max_speed
         self.max_yaw_rate = max_yaw_rate
         self.colregs = colregs
-        self.good_seamanship = good_seamanship
         self.projector = TimeSpaceProjector(self.desired_speed)
         self.path_planner = path_planner or PathPlanner()
         self.max_iter = max_iter
         self.speed_factor = speed_factor
+        self.edge_filters = [
+            SpeedConstraint(speed=max_speed),
+            YawRateConstraint(yaw_rate=DEG2RAD(max_yaw_rate) if degrees else max_yaw_rate)
+        ]
+
+        if colregs:
+            self.edge_filters.append(COLREGS(good_seamanship=good_seamanship))
 
         logger.debug(f"Successfully initialized TimeSpaceColav")
 
@@ -54,6 +63,7 @@ class TimeSpaceColav:
             *args, 
             heading: Optional[float] = None, 
             margin: float = 0.0, 
+            degrees: bool = True,
             **kwargs
         ) -> Optional[PWLTrajectory]:
         """
@@ -65,6 +75,15 @@ class TimeSpaceColav:
 
         Keywords argument can be used to affect the shapely.buffer method's behaviour
         """
+        if heading is not None:
+            heading = DEG2RAD(heading) if degrees else heading
+
+            # Raise warning if heading is very different from the actual direction leading to pf
+            pf_orientation = atan2(pf[0]-p0[0], pf[1]-p0[1])
+            angle_error = ssa(heading - pf_orientation)
+            if abs(angle_error) >= DEG2RAD(45):
+                logger.warning(f"Heading angle is {RAD2DEG(heading):.0f} degrees, but target point is oriented towards {RAD2DEG(pf_orientation):.0f} degrees")
+
         buffered_obstacles: List[MovingObstacle] = []
         for obs in obstacles:
             if obs.distance(*p0) <= self.distance_threshold:
@@ -73,6 +92,7 @@ class TimeSpaceColav:
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
             self.projector.v_des = (self.speed_factor**k) * self.desired_speed
+            logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f}")
 
             # Get timespace footprint, i.e. static polygons to be avoided
             projected_obstacles: List[shapely.Polygon] = self.projector.get(
@@ -86,13 +106,13 @@ class TimeSpaceColav:
             shore_as_dict = {i+1: self.shore[i] for i in range(len(self.shore))}
 
             # Create path planner
-            self.path_planner = VG(
+            self.path_planner = VGPathPlanner(
                 p0,
                 pf,
                 obstacles= projected_obstacles_as_dict | shore_as_dict,
-                edge_filters=[
-                    # e.g. colregs / yaw rate / speed filters
-                ]
+                edge_filters=self.edge_filters,
+                plane=self.projector.plane,
+                heading=heading
             )
 
             if self.path_planner.has_path(): 

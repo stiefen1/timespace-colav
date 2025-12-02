@@ -68,6 +68,15 @@ class MovingObstacle:
         new_self.reset_geometry()
         return new_self
     
+    def simplify(self, tolerance: float, preserve_topology: bool = True, **kwargs) -> "MovingObstacle":
+        """
+        """
+        new_self = deepcopy(self)
+        new_geometry_as_polygon = shapely.simplify(shapely.Polygon(self.geometry_at_psi_equal_0), tolerance, preserve_topology=preserve_topology, **kwargs)
+        new_self.geometry_at_psi_equal_0 = list(zip(*new_geometry_as_polygon.exterior.xy))
+        new_self.reset_geometry()
+        return new_self
+    
     @staticmethod
     def from_body(position: Tuple[float, float], psi: float, u: float, v: float, geometry_at_psi_equal_0: List[ Tuple[float, float] ], degrees: bool = False, mmsi: int | None = None) -> "MovingObstacle":
         """

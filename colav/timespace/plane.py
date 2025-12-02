@@ -52,12 +52,12 @@ class Plane:
 
         logger.debug(f"Plane was succesfully updated.")
 
-    def get_time(self, x: float | np.ndarray, y: float | np.ndarray) -> float | np.ndarray:
+    def get_time(self, x: float | int | np.ndarray, y: float | int | np.ndarray) -> float | np.ndarray:
         """
         Evaluate time at (x, y) according to the plane equation.
         """
-        assert isinstance(x, float) or isinstance(x, np.ndarray), f"x must be a float or a numpy array. Got type(x)={type(x)}"
-        assert isinstance(y, float) or isinstance(y, np.ndarray), f"y must be a float or a numpy array. Got type(x)={type(y)}"
+        assert isinstance(x, float) or isinstance(x, int) or isinstance(x, np.ndarray), f"x must be a float, integer or a numpy array. Got type(x)={type(x)}"
+        assert isinstance(y, float) or isinstance(y, int) or isinstance(y, np.ndarray), f"y must be a float, integer or a numpy array. Got type(x)={type(y)}"
         if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
             assert x.shape == y.shape, f"x and y must have same shapes. Got x.shape={x.shape} and y.shape={y.shape}"
 

@@ -1,4 +1,8 @@
 import numpy as np
+from math import pi
+
+DEG2RAD = lambda angle: np.deg2rad(angle)
+RAD2DEG = lambda angle: np.rad2deg(angle)
 
 def rotation_matrix(psi: float, degrees: bool = False) -> np.ndarray:
     """
@@ -12,3 +16,11 @@ def rotation_matrix(psi: float, degrees: bool = False) -> np.ndarray:
         [ s_psi, c_psi, 0],
         [ 0, 0, 1]
     ])
+
+def ssa(angle: float) -> float:
+    """
+    angle = ssa(angle) returns the smallest-signed angle in [ -pi, pi )
+    """
+    angle = (angle + pi) % (2 * pi) - pi
+        
+    return angle
