@@ -1,9 +1,13 @@
-from colav.path.edge_filter import IEdgeFilter
+from colav.path.filters import IEdgeFilter, INodeFilter
 from colav.timespace.plane import Plane
-import networkx as nx
-from typing import Dict, Tuple
+from colav.obstacles.moving import MovingShip
+from typing import Dict, Tuple, Optional
 from math import atan2
 from colav.utils.math import ssa
+from colav.colregs.encounters import get_recommendation_for_os, Recommendation
+from colav.utils.mmsi import is_valid_mmsi
+import logging, numpy as np
+logger = logging.getLogger(__name__)
 
 class SpeedConstraint(IEdgeFilter):
     def __init__(
@@ -32,15 +36,19 @@ class YawRateConstraint(IEdgeFilter):
         super().__init__()
         self.yaw_rate = yaw_rate
 
-    def is_valid(self, p1: Tuple[float, float], p2: Tuple[float, float], plane: Plane, heading: float, idx1: int, **kwargs) -> Tuple[bool, Dict]:
+    def is_valid(self, p1: Tuple[float, float], p2: Tuple[float, float], plane: Plane, idx1: int, heading: Optional[float] = None, **kwargs) -> Tuple[bool, Dict]:
         """
         heading in radians
         """
-        if idx1 != 0: # We only impose this constraint for edges connected to the current waypoint
-            return True, {}
+        info = {}
+        if idx1 != 0: # We only impose this constraint for edges connected to the starting waypoint (index=0)
+            return True, info
+        
+        if heading is None:
+            logger.warning(f"Yaw rate constraint is enabled but the own ship's heading was not provided (yaw rate constraint will be ignored).")
+            return True, info
 
         # Compute edge speed
-        info = {}
         dt = plane.get_time(*p2) - plane.get_time(*p1)
 
         if dt <= 0:
@@ -52,8 +60,8 @@ class YawRateConstraint(IEdgeFilter):
         yaw_rate_required = abs(angle_error) / dt
         is_valid = yaw_rate_required <= self.yaw_rate
         return is_valid, info # Warning is here because dt can be a numpy array in theory
-    
-class COLREGS(IEdgeFilter):
+
+class COLREGS(INodeFilter):
     def __init__(
         self,
         good_seamanship: bool = False
@@ -61,6 +69,56 @@ class COLREGS(IEdgeFilter):
         super().__init__()
         self.good_seamanship = good_seamanship
 
-    def is_valid(self, p1: Tuple[float, float], p2: Tuple[float, float], graph: nx.DiGraph, plane: Plane) -> Tuple[bool, Dict]:
-        info = {}
+    def is_valid(
+            self,
+            node: Dict,
+            plane: Plane,
+            p_0: Tuple[float, float],
+            moving_obstacles_as_dict: Dict[int, MovingShip],
+            heading: Optional[float] = None,
+            ts_in_TSS: bool = False,
+            os_in_TSS: bool = False,
+            **kwargs
+        ) -> Tuple[bool, Dict]:
+        info = {'label': ''}
+
+        if heading is None:
+            logger.warning(f"COLREGs is enabled but the own ship's heading was not provided (COLREGs will be ignored).")
+            return True, info
+
+        # Check whether obstacle is a vessel or not. If not, returns True (valid node)
+        if not(is_valid_mmsi(node['id']) or is_valid_mmsi(-node['id'])):
+            info['label'] = 'shore'
+            return True, info
+        
+        info['label'] = 'vessel'
+        target_ship = moving_obstacles_as_dict[node['id']]
+        n = np.array(node['pos']) # node's position
+        dt = 1 * plane.get_time(n[0], n[1]) # interval of time before reaching this node --> I HAVE TO FIGURE OUT THIS FACTOR
+
+        # Target ship when we own ship reaches node
+        target_ship_in_dt = target_ship.predict(dt, model='CVM')
+        ts_xy_in_dt = np.array(target_ship_in_dt.position)
+        os_xy = np.array(p_0)
+
+        dn = n - np.array(p_0)
+        dn_unit = dn / np.linalg.norm(dn)
+        dp = ts_xy_in_dt - os_xy
+        dp_unit = dp / np.linalg.norm(dp)
+        sth = (dp_unit[1] * dn_unit[0] - dp_unit[0] * dn_unit[1])
+
+        reco, info = get_recommendation_for_os(MovingShip(p_0, heading, (0, 0), 0, 0), target_ship, good_seamanship=self.good_seamanship, ts_in_TSS=ts_in_TSS, os_in_TSS=os_in_TSS)
+        print(sth, reco)
+
+        print("Now let's filter COLREGs!")
+
+        if reco == Recommendation.TURN_RIGHT:
+            if sth < 0:
+                logger.debug(f"node removed for COLREGs compliance")
+                return False, info
+        elif reco == Recommendation.TURN_LEFT:
+            if sth > 0:
+                logger.debug(f"node removed for COLREGs compliance")
+                return False, info
+        
         return True, info

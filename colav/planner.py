@@ -5,7 +5,7 @@ Typical use case:
 """
 
 from typing import List, Tuple, Optional
-from colav.obstacles import MovingObstacle
+from colav.obstacles import MovingObstacle, MovingShip
 from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
@@ -49,9 +49,7 @@ class TimeSpaceColav:
             SpeedConstraint(speed=max_speed),
             YawRateConstraint(yaw_rate=DEG2RAD(max_yaw_rate) if degrees else max_yaw_rate)
         ]
-
-        if colregs:
-            self.edge_filters.append(COLREGS(good_seamanship=good_seamanship))
+        self.node_filters = [COLREGS(good_seamanship=good_seamanship)] if colregs else []
 
         logger.debug(f"Successfully initialized TimeSpaceColav")
 
@@ -103,16 +101,20 @@ class TimeSpaceColav:
 
             # Convert projected (moving) obstacles and shore into dict
             projected_obstacles_as_dict = {obs.mmsi: proj_obs for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)} 
+            moving_obstacles_as_dict = {obs.mmsi: obs for obs in buffered_obstacles}
             shore_as_dict = {i+1: self.shore[i] for i in range(len(self.shore))}
 
             # Create path planner
             self.path_planner = VGPathPlanner(
                 p0,
                 pf,
-                obstacles= projected_obstacles_as_dict | shore_as_dict,
-                edge_filters=self.edge_filters,
-                plane=self.projector.plane,
-                heading=heading
+                obstacles = projected_obstacles_as_dict | shore_as_dict,
+                edge_filters = self.edge_filters,
+                node_filters = self.node_filters,
+                plane = self.projector.plane,
+                heading = heading,
+                moving_obstacles_as_dict = moving_obstacles_as_dict, # Useful for COLREGs
+                degrees = degrees
             )
 
             if self.path_planner.has_path(): 

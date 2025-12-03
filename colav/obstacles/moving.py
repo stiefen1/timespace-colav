@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Literal
 from colav.obstacles.transform import get_shape_at_xypsi
 from colav.obstacles.shapes import SHIP
 from colav.utils.math import rotation_matrix
@@ -46,6 +46,24 @@ class MovingObstacle:
     def distance(self, x: float, y: float) -> float:
         """Returns distance of TS from (x, y)"""
         return ((x-self.position[0])**2 + (y-self.position[1])**2)**0.5
+    
+    def predict(self, dt: float, model: Literal['CVM'] = 'CVM', **kwargs) -> "MovingObstacle":
+        match model:
+            case 'CVM':
+                return MovingObstacle(
+                    (
+                        self.position[0] + self.velocity[0] * dt,
+                        self.position[1] + self.velocity[1] * dt
+                    ),
+                    self.psi,
+                    self.velocity,
+                    self.geometry_at_psi_equal_0,
+                    degrees=self.degrees,
+                    mmsi=self.mmsi
+                )
+            case _:
+                logger.warning(f"{model} is not a valid prediction model option.")
+                return None
 
     def plot(self, *args, ax: Axes | Axes3D | None = None, t: float | None = 0, **kwargs) -> Axes | Axes3D:
         if ax is None:
@@ -144,12 +162,17 @@ class MovingShip(MovingObstacle):
         x_dot = sog * np.sin(cog) # = east speed
         y_dot = sog * np.cos(cog) # = north speed
         return MovingShip(position, psi, (x_dot, y_dot), loa=loa, beam=beam, degrees=degrees, mmsi=mmsi)
+    
+    @property
+    def ne(self) -> Tuple[float, float]:
+        return self.position[1], self.position[0]
 
 
 if __name__ == "__main__":
-    from colav.obstacles import SHIP
+    from colav.obstacles.shapes import SHIP
     import matplotlib.pyplot as plt
 
+    # Recommended way for declaring a ship
     loa, beam = 5, 2
     ship = MovingShip(
         (-2, 3),
@@ -160,19 +183,25 @@ if __name__ == "__main__":
         degrees=True
     )
 
+    # Unrecommended way for declaring a ship
     target_ship = MovingObstacle.from_body((15, 10), 45, 1, 0, SHIP(loa, beam), degrees=True)
     print(target_ship.velocity, ship.u, ship.v)
 
-    t = None
+    t0 = 10
+    t1 = 20
     fig = plt.figure()
-    ax = fig.add_subplot() if t is None else fig.add_subplot(projection='3d') 
-    ship.plot(ax=ax, t=t)
-    ship.fill(ax=ax, t=t, facecolor='grey')
-    ship.scatter(ax=ax, t=t, c='red')
+    ax = fig.add_subplot() if t0 is None else fig.add_subplot(projection='3d') 
+    ship.plot(ax=ax, t=t0, c='purple')
+    ship.fill(ax=ax, t=t0, facecolor='grey')
+    ship.scatter(ax=ax, t=t0, c='purple')
 
-    target_ship.plot(ax=ax, t=t)
-    target_ship.fill(ax=ax, t=t, facecolor='red')
-    target_ship.scatter(ax=ax, t=t, c='green')
+    target_ship.plot(ax=ax, t=t0, c='green')
+    target_ship.fill(ax=ax, t=t0, facecolor='grey')
+    target_ship.scatter(ax=ax, t=t0, c='green')
+
+    # Plot ships at t=t1
+    ship.predict(t1-t0).plot(ax=ax, c='purple', t=t1)
+    target_ship.predict(t1-t0).plot(ax=ax, c='green', t=t1)
 
     ax.set_aspect('equal')
     plt.show()

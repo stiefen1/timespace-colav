@@ -3,7 +3,7 @@ from colav.obstacles import MovingObstacle, MovingShip
 from colav.planner import TimeSpaceColav
 import matplotlib.pyplot as plt, logging, colav, numpy as np
 from shapely import Polygon, Point
-colav.configure_logging(level=logging.INFO)
+colav.configure_logging(level=logging.DEBUG)
 
 # From Course & Speed Over Ground (CSOG)
 ts1 = MovingShip.from_csog(
@@ -51,7 +51,8 @@ planner = TimeSpaceColav(
     shore=shore_with_sd,        # All the static obstacles with safety margin
     max_speed=5,
     max_yaw_rate=1,
-    max_iter=10
+    max_iter=10,
+    colregs=True
 )
 
 traj = planner.get(
@@ -80,13 +81,9 @@ ts2_with_sd.fill(ax=ax, c='red', alpha=0.5)
 if planner.path_planner is not None:
     planner.path_planner.plot(ax=ax, node_size=20)
 
-print(ts1_with_sd.geometry)
-print(ts2_with_sd.geometry)
-
 # Projected footprint
 for i, projected_ship in enumerate(planner.projector.get(p0, pf, [ts1_with_sd, ts2_with_sd])):
     ax.fill(*projected_ship.exterior.xy, c='grey', alpha=0.7, label=f"footprints" if i==0 else None)
-    print(projected_ship.exterior.xy)
 
 for j, obs in enumerate(shore):
     ax.fill(*obs.exterior.xy, c='orange', label="obstacles" if j==0 else None)

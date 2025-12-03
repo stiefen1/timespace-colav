@@ -6,11 +6,9 @@ and edges connect visible (collision-free) node pairs.
 """
 
 import networkx as nx
-from typing import List, Tuple, Optional, Dict, Callable
+from typing import List, Tuple, Optional, Dict
+from colav.path.filters import IEdgeFilter, INodeFilter
 from colav.obstacles.moving import MovingObstacle
-from colav.path.pwl import PWLPath
-from colav.path.edge_filter import IEdgeFilter
-from matplotlib.axes import Axes
 from shapely import Polygon, Point, LineString, MultiPoint
 import matplotlib.pyplot as plt, logging
 logger = logging.getLogger(__name__)
@@ -88,6 +86,7 @@ class VisibilityGraph(nx.DiGraph):
         p_f: Tuple[float, float],
         obstacles: Optional[Dict[int, Polygon]] = None,
         edge_filters: Optional[List[IEdgeFilter]] = None,
+        node_filters: Optional[List[INodeFilter]] = None,
         **kwargs
     ):
         """
@@ -104,6 +103,7 @@ class VisibilityGraph(nx.DiGraph):
         self.p_f = p_f
         self.obstacles = obstacles or {}
         self.edge_filters = edge_filters or []
+        self.node_filters = node_filters or []
 
         # Initialize graph and populate with nodes and edges
         super().__init__()
@@ -138,22 +138,36 @@ class VisibilityGraph(nx.DiGraph):
                 )
 
         # Add start node
-        self.add_node(0, pos=self.p_0, id=0)
+        self.add_node(0, pos=self.p_0, id=0, label='start')
         
         # Add obstacle vertex nodes
         i: int = 0
         for obstacle_id, polygon in self.obstacles.items():
             assert obstacle_id != -1 and obstacle_id != 0, f"Obstacle ID must be != -1, 0. Got {obstacle_id}"
-            
+
             # Add each vertex of the polygon (skip first as it equals last)
             for i, (x, y) in enumerate(zip(*polygon.exterior.xy)):
                 if i == 0:  # Skip duplicate first vertex
                     continue
-                self.add_node(node_idx, pos=(x, y), id=obstacle_id)
-                node_idx += 1
+                node = {
+                    'pos': (x, y),
+                    'id': obstacle_id,
+                }
+
+                all_valid = True
+                info = {}
+                for node_filter in self.node_filters:
+                    valid, info = node_filter(node=node, p_0=self.p_0, **kwargs)
+                    all_valid = all_valid and valid
+                    if not(all_valid):
+                        break
+
+                if all_valid:
+                    self.add_node(node_idx, pos=(x, y), id=obstacle_id, **info)
+                    node_idx += 1
         
         # Add end node
-        self.add_node(-1, pos=self.p_f, id=-1)
+        self.add_node(-1, pos=self.p_f, id=-1, label='end')
         logger.debug(f"Successfully populated {node_idx} nodes.")
 
         if i > 100:

@@ -18,6 +18,18 @@ def generate_mmsi_formatted():
     return int(f"{random.randint(1, 9)}{random.randint(10000000, 99999999)}")
 
 
+def is_valid_mmsi(number: int) -> bool:
+    """
+    Check if a number is a valid MMSI (Maritime Mobile Service Identity).
+
+    Args:
+        number (int): The number to check.
+
+    Returns:
+        bool: True if the number is a valid MMSI, False otherwise.
+    """
+    return 100000000 <= number <= 999999999
+
 
 if __name__ == "__main__":
     # Usage

@@ -6,7 +6,7 @@ from matplotlib.axes import Axes
 from typing import Optional, Tuple, List, Dict
 from shapely import Polygon
 from colav.path.graph import VisibilityGraph
-from colav.path.edge_filter import IEdgeFilter
+from colav.path.filters import IEdgeFilter, INodeFilter
 from colav.path.pwl import PWLPath
 import networkx as nx, matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -38,6 +38,7 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
         p_f: Tuple[float, float],
         obstacles: Optional[Dict[int, Polygon]] = None,
         edge_filters: Optional[List[IEdgeFilter]] = None,
+        node_filters: Optional[List[INodeFilter]] = None,
         **kwargs
     ):
         IPathPlanner.__init__(self)
@@ -47,6 +48,7 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
             p_f,
             obstacles,
             edge_filters,
+            node_filters,
             **kwargs
         )
 
