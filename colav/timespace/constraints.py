@@ -72,9 +72,9 @@ class COLREGS(INodeFilter):
     def is_valid(
             self,
             node: Dict,
-            plane: Plane,
             p_0: Tuple[float, float],
             moving_obstacles_as_dict: Dict[int, MovingShip],
+            obstacle_centroid: Tuple[float, float],
             heading: Optional[float] = None,
             ts_in_TSS: bool = False,
             os_in_TSS: bool = False,
@@ -94,23 +94,18 @@ class COLREGS(INodeFilter):
         info['label'] = 'vessel'
         target_ship = moving_obstacles_as_dict[node['id']]
         n = np.array(node['pos']) # node's position
-        dt = 1 * plane.get_time(n[0], n[1]) # interval of time before reaching this node --> I HAVE TO FIGURE OUT THIS FACTOR
 
         # Target ship when we own ship reaches node
-        target_ship_in_dt = target_ship.predict(dt, model='CVM')
-        ts_xy_in_dt = np.array(target_ship_in_dt.position)
+        ts_timespace_footprint_centroid = np.array(obstacle_centroid)
         os_xy = np.array(p_0)
 
         dn = n - np.array(p_0)
         dn_unit = dn / np.linalg.norm(dn)
-        dp = ts_xy_in_dt - os_xy
+        dp = ts_timespace_footprint_centroid - os_xy
         dp_unit = dp / np.linalg.norm(dp)
         sth = (dp_unit[1] * dn_unit[0] - dp_unit[0] * dn_unit[1])
 
         reco, info = get_recommendation_for_os(MovingShip(p_0, heading, (0, 0), 0, 0), target_ship, good_seamanship=self.good_seamanship, ts_in_TSS=ts_in_TSS, os_in_TSS=os_in_TSS)
-        print(sth, reco)
-
-        print("Now let's filter COLREGs!")
 
         if reco == Recommendation.TURN_RIGHT:
             if sth < 0:

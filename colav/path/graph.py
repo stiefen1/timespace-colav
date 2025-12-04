@@ -154,10 +154,12 @@ class VisibilityGraph(nx.DiGraph):
                     'id': obstacle_id,
                 }
 
+                centroid = polygon.centroid
+
                 all_valid = True
                 info = {}
                 for node_filter in self.node_filters:
-                    valid, info = node_filter(node=node, p_0=self.p_0, **kwargs)
+                    valid, info = node_filter(node=node, p_0=self.p_0, obstacle_centroid=(centroid.x, centroid.y), **kwargs)
                     all_valid = all_valid and valid
                     if not(all_valid):
                         break
