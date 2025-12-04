@@ -4,7 +4,7 @@ Typical use case:
 
 """
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 from colav.obstacles import MovingObstacle, MovingShip
 from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
@@ -13,7 +13,7 @@ from colav.path.planning import VGPathPlanner
 from colav.timespace.constraints import SpeedConstraint, YawRateConstraint, COLREGS
 import shapely, logging
 from colav.utils.math import DEG2RAD, RAD2DEG, ssa
-from math import atan2
+from math import atan2, cos, sin
 logger = logging.getLogger(__name__)
 
 class TimeSpaceColav:
@@ -56,14 +56,16 @@ class TimeSpaceColav:
     def get(
             self, 
             p0: Tuple[float, float], 
-            pf: Tuple[float, float], 
             obstacles: List[MovingObstacle], 
             *args, 
             heading: Optional[float] = None, 
+            desired_heading: Optional[float] = None,
+            pf: Optional[Tuple[float, float]] = None, 
             margin: float = 0.0, 
             degrees: bool = True,
+            lookahead_distance: float = 300, # distance of the artificial pf from p0. Only used if pf is not provided.
             **kwargs
-        ) -> Optional[PWLTrajectory]:
+        ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
         Returns the shortest trajectory between p0 and pf to avoid obstacles as a piecewise-linear path parameterized in time.
 
@@ -73,14 +75,23 @@ class TimeSpaceColav:
 
         Keywords argument can be used to affect the shapely.buffer method's behaviour
         """
-        if heading is not None:
+        # TODO: Add desired_heading: Optional[float] = None as a replacement to pf
+
+        assert desired_heading is not None or pf is not None, f"Either desired_heading or pf must be provided. Got desired_heading={desired_heading} and pf={pf}"
+
+        if pf is not None: # pf has priority over desired_heading
+            desired_heading = atan2(pf[0]-p0[0], pf[1]-p0[1])
+        elif desired_heading is not None:
+            desired_heading = DEG2RAD(desired_heading) if degrees else desired_heading
+            pf = (p0[0] + lookahead_distance * sin(desired_heading), p0[1] + lookahead_distance * cos(desired_heading))
+
+        if (heading is not None) and (desired_heading is not None):
             heading = DEG2RAD(heading) if degrees else heading
 
             # Raise warning if heading is very different from the actual direction leading to pf
-            pf_orientation = atan2(pf[0]-p0[0], pf[1]-p0[1])
-            angle_error = ssa(heading - pf_orientation)
+            angle_error = ssa(heading - desired_heading)
             if abs(angle_error) >= DEG2RAD(45):
-                logger.warning(f"Heading angle is {RAD2DEG(heading):.0f} degrees, but target point is oriented towards {RAD2DEG(pf_orientation):.0f} degrees")
+                logger.warning(f"Heading angle is {RAD2DEG(heading):.0f} degrees, but target point is oriented towards {RAD2DEG(desired_heading):.0f} degrees")
 
         buffered_obstacles: List[MovingObstacle] = []
         for obs in obstacles:
@@ -124,16 +135,16 @@ class TimeSpaceColav:
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
 
-                return traj # TODO: Returns necessary speed and heading to reach first waypoint. 
+                logger.info(f"speed and heading required for COLAV: {traj.get_speed(0):.1f} [m/s], {traj.get_heading(0):.1f} [deg]")
+
+                return traj, {'pf': pf} # TODO: Returns necessary speed and heading to reach first waypoint. 
 
 
         # if max_iter was reached, returns None
         logger.warning(f"Max number of iterations reached: no valid trajectory was found. Try decreasing the speed_factor or increasing the max number of iterations")
-        return None
+        return None, {}
     
 if __name__ == "__main__":
     import colav, logging
     colav.configure_logging(level=logging.DEBUG)
-    planner = colav.TimeSpaceColav(3)
-    # print(planner.get((0, 0), (100, 100), [MovingShip((20, 20), 30, (2, 2), 10, 4, degrees=True)])[0].geometry)
-    
+    planner = colav.TimeSpaceColav(3)    

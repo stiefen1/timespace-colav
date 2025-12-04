@@ -48,7 +48,7 @@ def get_encounter(
     else:
         logger.warning(f"Invalid value for encounter with relative angle {encounter_angle_deg:.2f} deg")
 
-    logger.info(f"{encounter.name} encounter detected")
+    logger.debug(f"{encounter.name} encounter detected")
     return encounter
 
 def get_recommendation_from_encounters(ts_wrt_os:Encounter, os_wrt_ts:Encounter, good_seamanship:bool=False, ts_in_TSS:bool=False, os_in_TSS:bool=False) -> Recommendation:
@@ -96,7 +96,7 @@ def get_recommendation_from_encounters(ts_wrt_os:Encounter, os_wrt_ts:Encounter,
                 logger.warning(f"Invalid Encounter value {ts_wrt_os}")
                 recommendation = Recommendation.INVALID
 
-    logger.info(f"Recommended {recommendation.name}")
+    logger.debug(f"Recommended {recommendation.name}")
     return recommendation
 
 def get_recommendation_for_os(

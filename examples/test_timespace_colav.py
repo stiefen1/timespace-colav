@@ -3,7 +3,7 @@ from colav.obstacles import MovingObstacle, MovingShip
 from colav.planner import TimeSpaceColav
 import matplotlib.pyplot as plt, logging, colav, numpy as np
 from shapely import Polygon, Point
-colav.configure_logging(level=logging.DEBUG)
+colav.configure_logging(level=logging.INFO)
 
 # From Course & Speed Over Ground (CSOG)
 ts1 = MovingShip.from_csog(
@@ -55,22 +55,20 @@ planner = TimeSpaceColav(
     colregs=True
 )
 
-traj = planner.get(
+traj, info = planner.get(
     p0=p0,                                  # Inital position of own ship
-    pf=pf,                                  # Target position of own ship 
+    pf=pf,                                # Target position of own ship 
+    desired_heading=-75,
     obstacles=[ts1_with_sd, ts2_with_sd],   # Moving obstacles
     heading=-70
 )  
-
-if traj is not None:
-    print("Actual speed required for COLAV: ", traj.get_speed(0))
 
 # Display target ships with their projected footprint
 _, ax = plt.subplots(figsize=(7, 7))
 
 # Start and target position (Own ship)
 ax.scatter(*p0, c='green', label='p0 (own ship)')
-ax.scatter(*pf, c='purple', label='pf (own ship)')
+ax.scatter(*info['pf'], c='purple', label='pf (own ship)')
 
 # Target ships
 ts1.fill(ax=ax, c='blue', label='target ship 1')
@@ -82,7 +80,7 @@ if planner.path_planner is not None:
     planner.path_planner.plot(ax=ax, node_size=20)
 
 # Projected footprint
-for i, projected_ship in enumerate(planner.projector.get(p0, pf, [ts1_with_sd, ts2_with_sd])):
+for i, projected_ship in enumerate(planner.projector.get(p0, info['pf'], [ts1_with_sd, ts2_with_sd])):
     ax.fill(*projected_ship.exterior.xy, c='grey', alpha=0.7, label=f"footprints" if i==0 else None)
 
 for j, obs in enumerate(shore):

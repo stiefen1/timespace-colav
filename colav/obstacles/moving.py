@@ -40,7 +40,6 @@ class MovingObstacle:
 
     def reset_geometry(self) -> None:
          # Get the transformed geometry points 
-        # print(self.geometry_at_psi_equal_0) 
         self.geometry = get_shape_at_xypsi(*self.position, self.psi, self.geometry_at_psi_equal_0, degrees=self.degrees)
 
     def distance(self, x: float, y: float) -> float:
@@ -143,12 +142,14 @@ class MovingShip(MovingObstacle):
         degrees: bool = False,
         mmsi: int | None = None
     ):
+        self.loa = loa
+        self.beam = beam
         super().__init__(position, psi, velocity, SHIP(loa, beam), degrees=degrees, mmsi=mmsi)
 
     @staticmethod
-    def from_body(position: Tuple[float, float], psi: float, u: float, v: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: int | None = None, **kwargs) -> "MovingObstacle":
+    def from_body(position: Tuple[float, float], psi: float, u: float, v: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: int | None = None, **kwargs) -> "MovingShip":
         """
-        Return a MovingObstacle object using speed in body frame.
+        Return a MovingShip object using speed in body frame.
         """
         
         R = rotation_matrix(psi, degrees=degrees)
@@ -156,13 +157,32 @@ class MovingShip(MovingObstacle):
         return MovingShip(position, psi, (float(velocity[1]), float(velocity[0])), loa, beam, degrees=degrees, mmsi=mmsi)
     
     @staticmethod
-    def from_csog(position: Tuple[float, float], psi: float, cog: float, sog: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: Optional[int] = None, **kwargs) -> "MovingObstacle":
+    def from_csog(position: Tuple[float, float], psi: float, cog: float, sog: float, loa: float, beam: float, *args, degrees: bool = False, mmsi: Optional[int] = None, **kwargs) -> "MovingShip":
         # Convert course-over-ground, speed-over-ground into u, v
         cog = np.deg2rad(cog) if degrees else cog
         x_dot = sog * np.sin(cog) # = east speed
         y_dot = sog * np.cos(cog) # = north speed
         return MovingShip(position, psi, (x_dot, y_dot), loa=loa, beam=beam, degrees=degrees, mmsi=mmsi)
     
+    def predict(self, dt: float, model: Literal['CVM'] = 'CVM', **kwargs) -> "MovingObstacle":
+        match model:
+            case 'CVM':
+                return MovingShip(
+                    (
+                        self.position[0] + self.velocity[0] * dt,
+                        self.position[1] + self.velocity[1] * dt
+                    ),
+                    self.psi,
+                    self.velocity,
+                    self.loa,
+                    self.beam,
+                    degrees=self.degrees,
+                    mmsi=self.mmsi
+                )
+            case _:
+                logger.warning(f"{model} is not a valid prediction model option.")
+                return None
+
     @property
     def ne(self) -> Tuple[float, float]:
         return self.position[1], self.position[0]

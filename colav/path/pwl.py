@@ -1,5 +1,5 @@
 from typing import List, Tuple, Optional
-from shapely import LineString
+from shapely import LineString, Point
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt, numpy as np
 """
@@ -86,6 +86,10 @@ class PWLPath:
         point = self._linestring.interpolate(distance, normalized=normalized)
         return point.x, point.y
     
+    def progression(self, x:float, y:float, normalized: bool = False) -> float:
+        prog = self._linestring.project(Point(x, y))
+        return prog / self._linestring.length if normalized else prog
+    
     def plot(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
         if ax is None:
             _, ax = plt.subplots()
@@ -101,6 +105,10 @@ class PWLPath:
     @property
     def xy(self) -> List[ Tuple[float, float] ]:
         return [(point[0], point[1]) for point in self._linestring.coords]
+    
+    @property
+    def length(self) -> float:
+        return self._linestring.length
 
 if __name__ == "__main__":
     from colav.timespace.projector import TimeSpaceProjector
