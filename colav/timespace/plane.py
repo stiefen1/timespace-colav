@@ -64,13 +64,14 @@ class Plane:
         bx, by, bt = self._b_ts.tolist()
         return bx*x + by*y + bt
 
-    def intersection(self, vertices: List[ Tuple[float, float] ], velocity: Tuple[float, float]) -> Tuple[ List[ Tuple[float, float] ], List[float], bool ]:
+    def intersection_with_single_vertex(self, vertex: Tuple[float, float], velocity: Tuple[float, float], robust: bool = False) -> Tuple[Tuple[float, float], float, bool]:
         """
-        Compute the intersection between timespace plane and a list of vertices moving at a given (constant) velocity.
+        Compute the intersection between timespace plane and a single vertex moving at a given (constant) velocity.
 
         Check whether the spatio-temporal obstacle is in past (valid=False) or future (valid=True)
         """
         assert len(velocity) == 2, f"velocity must be a 2D tuple. Got velocity={velocity}"
+        assert len(vertex) == 2, f"vertex must be a 2D tuple. Got vertex={vertex}"
         
         # Retrieve plane parameters
         bx, by, bt = self._b_ts
@@ -82,24 +83,31 @@ class Plane:
         if den == 0:
             raise ValueError(f"The obstacle is moving parallely to the plane. Try to slightly change its speed.")
 
-        projected_vertices, times = [], []
-        valid = False
-        for px_i, py_i in vertices:
-            p_i = np.array([px_i, py_i])
+        p_i = np.array(vertex)
 
-            # Compute intersection coordinates according to equations (8.1) and (6.2)
-            t_i = ((b @ p_i) + bt) / den
-            v_at_t_i = p_i + p_dot * t_i
-            x_i, y_i = v_at_t_i[0], v_at_t_i[1]
+        # Compute intersection coordinates according to equations (8.1) and (6.2)
+        den = 1e-6 if (den < 0 and robust) else den
+        t_i = ((b @ p_i) + bt) / den
+        v_at_t_i = p_i + p_dot * t_i
+        x_i, y_i = v_at_t_i[0], v_at_t_i[1]
 
-            # Save intersection
-            projected_vertices.append((float(x_i), float(y_i)))
-            times.append(float(t_i))
-
-            if t_i >= 0:
-                valid = True
+        valid = False if t_i < 0 else True
                 
-        return projected_vertices, times, valid
+        return (x_i, y_i), t_i, valid
+
+    def intersection(self, vertices: List[ Tuple[float, float] ], velocities: List[ Tuple[float, float] ], robust: bool = False) -> Tuple[ List[ Tuple[float, float] ], List[float], bool ]:
+        """
+        Compute the intersection between timespace plane and a list of vertices moving at a given (constant) velocity.
+
+        Check whether the spatio-temporal obstacle is in past (valid=False) or future (valid=True)
+        """
+        projected_vertices, times, all_valid = [], [], False
+        for vertex, velocity in zip(vertices, velocities):
+            p_i, t_i, valid = self.intersection_with_single_vertex(vertex, velocity, robust=robust)
+            projected_vertices.append(p_i)
+            times.append(t_i)
+            all_valid = all_valid or valid
+        return projected_vertices, times, all_valid
         
     def plot(self, *args, ax: Axes3D | None = None, xlim:Tuple[float, float] | None = None, ylim:Tuple[float, float] | None = None, zlim:Tuple[float, float] | None = None, grid:Tuple[int, int] = (10, 10), **kwargs) -> Axes:
         """
@@ -169,8 +177,8 @@ if __name__ == "__main__":
     velocity = 1/10, 1/10
     
     plane = Plane(p0, pf, t0, tf)
-    print(plane.intersection(toy_obstacle, velocity))
-    inter, ts, valid = plane.intersection(toy_obstacle, velocity)
+    print(plane.intersection(toy_obstacle, len(toy_obstacle) * [velocity]))
+    inter, ts, valid = plane.intersection(toy_obstacle, len(toy_obstacle) * [velocity])
 
     ax = plane.plot(alpha=0.3)
     ax.scatter(*zip(*toy_obstacle), c='green')

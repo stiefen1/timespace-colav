@@ -1,8 +1,9 @@
 from colav.scenarios.env import COLAVEnv
-from colav.path.planning import PWLPath
+from colav.path.pwl import PWLPath, PWLTrajectory
 from colav.obstacles.moving import MovingShip, MovingObstacle
 import tqdm, numpy as np, matplotlib.pyplot as plt, logging, imageio
 from typing import List, Tuple
+from shapely import Polygon
 import matplotlib
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
@@ -27,6 +28,9 @@ class ScenarioRunner:
         distances = []
         own_traj = []
         obs_trajs = []
+        speeds = []
+        yaw_rates = []
+        prev_psi = None
 
         for ti in tqdm.tqdm(np.arange(0, self.tf, self.dt)):
             ax.cla()
@@ -44,6 +48,7 @@ class ScenarioRunner:
             out, done, info = self.env.step(self.dt)
             own_ship: MovingShip = out['own_ship']
             obstacles: List[MovingObstacle] = out['obstacles']
+            os_traj: PWLTrajectory = out['trajectory']
 
             if not own_traj:
                 own_traj = [own_ship.position]
@@ -55,6 +60,8 @@ class ScenarioRunner:
             for traj in obs_trajs:
                 if traj:
                     ax.plot(*zip(*traj), c='red', linestyle='-')
+            if os_traj is not None:
+                os_traj.plot(ax=ax, c='blue', linewidth=0.5)
 
             if track_own_ship:
                 x, y = own_ship.position
@@ -71,10 +78,24 @@ class ScenarioRunner:
             dists = [np.linalg.norm(np.array(own_ship.position) - np.array(obs.position)) for obs in obstacles]
             distances.append(dists)
 
+            # Collect speed and yaw rate
+            speed = np.sqrt(own_ship.u**2 + own_ship.v**2)
+            speeds.append(speed)
+            current_psi = own_ship.psi
+            if prev_psi is not None:
+                yaw_rate = (current_psi - prev_psi) / self.dt
+                yaw_rates.append(yaw_rate)
+            else:
+                yaw_rates.append(0)  # For the first point
+            prev_psi = current_psi
+
             # Update trajectories
             own_traj.append(own_ship.position)
             for i, obs in enumerate(obstacles):
                 obs_trajs[i].append(obs.position)
+            # projected_obstacles = self.env.planner.projector.get(self.env.own_ship.position, self.env.path.interpolate(self.env.path.progression(*self.env.own_ship.position) + self.env.lookahead_distance), [obs.extend(self.env.buffer_moving) for obs in self.env.obstacles])
+            # for proj_obs in projected_obstacles:
+            #     ax.plot(*proj_obs.exterior.xy, c='green')
 
             if done:
                 logger.info(f"Reached final point of the desired path, ending scenario..")
@@ -85,7 +106,6 @@ class ScenarioRunner:
             frame = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8).reshape((height, width, 4))[:, :, 1:]
             frames.append(frame)
 
-            
         logger.info(f"Scenario done. Saving {output_file} ..")
         imageio.mimsave(output_file, frames, fps=10)
         plt.close(fig)
@@ -96,14 +116,38 @@ class ScenarioRunner:
             for i in range(len(distances[0])):
                 obs_dists = [d[i] for d in distances]
                 ax2.plot(times, obs_dists, label=f"Obstacle {i+1}")
-            ax2.axhline(y=self.env.buffer, color='red', linestyle='--', label='Min Acceptable Distance')
+            ax2.axhline(y=self.env.buffer_moving, color='red', linestyle='--', label='Min Acceptable Distance')
             ax2.set_xlabel('Time (s)')
             ax2.set_ylabel('Distance')
             ax2.legend()
             ax2.set_title('Distance to Obstacles Over Time')
+            ax2.set_ylim((0, ax2.get_ylim()[1]))
             fig2.savefig('distance_plot.png')
             plt.close(fig2)
             logger.info("Saved distance_plot.png")
+
+        # Create speed and yaw rate plot
+        if speeds and yaw_rates:
+            fig3, (ax3, ax4) = plt.subplots(2, 1, figsize=(8, 6))
+            ax3.plot(times, speeds)
+            ax3.axhline(y=self.env.planner.max_speed, color='green', linestyle='--', label='Max Speed')
+            ax3.set_title('Own Ship Speed')
+            ax3.set_ylabel('Speed (m/s)')
+            ax3.legend()
+            ax3.set_ylim((0, self.env.planner.max_speed + 1))
+            ax4.plot(times, yaw_rates)
+            ax4.axhline(y=self.env.planner.max_yaw_rate, color='orange', linestyle='--', label='Max Yaw Rate')
+            ax4.axhline(y=-self.env.planner.max_yaw_rate, color='orange', linestyle='--', label='Min Yaw Rate')
+            ax4.set_title('Own Ship Yaw Rate')
+            ax4.set_xlabel('Time (s)')
+            ax4.set_ylabel('Yaw Rate (rad/s)')
+            if self.env.planner.max_yaw_rate != float('inf'):
+                ax4.set_ylim((-self.env.planner.max_yaw_rate - 1, self.env.planner.max_yaw_rate + 1))
+            ax4.legend()
+            fig3.tight_layout()
+            fig3.savefig('speed_yaw_plot.png')
+            plt.close(fig3)
+            logger.info("Saved speed_yaw_plot.png")
 
             
 
@@ -112,58 +156,35 @@ if __name__ == "__main__":
     colav.configure_logging(logging.WARNING)
 
     env = COLAVEnv(
-            MovingShip.from_body(
-                (0, 0),
-                45,
-                3,
-                0,
-                10,
-                3,
-                degrees=True
-            ),
-            PWLPath(
-                [
-                    (0, 0),
-                    (1000, 1000)
-                ]
-            ),
+            MovingShip.from_body((-200, -200), 45, 3, 0, 10, 3, degrees=True),
+            PWLPath([(-200, -200), (1000, 1000)]),
             3,
             [
-                MovingShip.from_body(
-                    (400, 0),
-                    -20,
-                    2.5,
-                    0,
-                    10,
-                    3,
-                    degrees=True
-                ),
-                MovingShip.from_body(
-                    (600, 1000),
-                    -180,
-                    2,
-                    0,
-                    10,
-                    3,
-                    degrees=True
-                )
+                MovingShip.from_body((200, -200), 0, 2, 0, 10, 3, degrees=True, du=0.5, dchi=10),
+                MovingShip.from_body((600, 1000), -170, 3, 0, 10, 3, degrees=True, du=0.5, dchi=10)
             ],
-            max_speed=3.5,
-            max_yaw_rate=1,
-            colregs=False,
+            shore=[
+                Polygon([(800, 600), (800, 700), (700, 700), (700, 600), (800, 600)])
+            ],
+            max_speed=3,
+            max_yaw_rate=0.5,
+            colregs=True,
             degrees=True,
-            buffer=100,
-            simplify=5,
+            buffer_moving=50,
+            simplify_moving=0,
+            buffer_static=20,
+            simplify_static=5,
             max_iter=20,
-            distance_threshold=1000,
-            lookahead_distance=500
+            distance_threshold=2000,
+            lookahead_distance=2000,
+            abort_colregs_after_iter=5
         )
     
     runner = ScenarioRunner(
         env, 
         tf=1000,
-        dt=2
+        dt=5
     )
 
-    runner.run(xlim=(-100, 1100), ylim=(-100, 1100), track_own_ship=False)
+    runner.run(xlim=(-300, 1100), ylim=(-300, 1100), track_own_ship=False)
     # runner.run(xlim=(-100, 100), ylim=(-100, 100), track_own_ship=True)

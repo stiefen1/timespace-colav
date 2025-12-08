@@ -8,6 +8,7 @@ SHIP = lambda loa, beam: [
     (0, loa/2),
     (beam/2, loa/4),
     (beam/2, -loa/2),
+    (0, -loa/2),
     (-beam/2, -loa/2),
     (-beam/2, loa/4),
     (0, loa/2)

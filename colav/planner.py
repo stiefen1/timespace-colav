@@ -29,7 +29,8 @@ class TimeSpaceColav:
             path_planner: Optional[PathPlanner] = None,
             max_iter: int = 10, # Max iterations for finding a valid solution
             speed_factor: float = 0.95, # At each iteration k, speed = speed_factor**k * desired_speed
-            degrees: bool = True
+            degrees: bool = True,
+            abort_colregs_after_iter: Optional[int] = None
     ):
         assert desired_speed > 0, f"Desired speed must be > 0. Got {desired_speed} <= 0 instead."
         assert max_speed > 0, f"Maximum speed must be > 0. Got {max_speed} <= 0 instead."
@@ -39,12 +40,14 @@ class TimeSpaceColav:
         self.desired_speed = desired_speed
         self.distance_threshold = distance_threshold
         self.shore = shore or []
+        self.max_speed = max_speed
         self.max_yaw_rate = max_yaw_rate
         self.colregs = colregs
         self.projector = TimeSpaceProjector(self.desired_speed)
         self.path_planner = path_planner or PathPlanner()
         self.max_iter = max_iter
         self.speed_factor = speed_factor
+        self.abort_colregs_after_iter = abort_colregs_after_iter or max_iter // 2 # If abort_colregs_after_iter is not specified, we abort it at max_iter // 2
         self.edge_filters = [
             SpeedConstraint(speed=max_speed),
             YawRateConstraint(yaw_rate=DEG2RAD(max_yaw_rate) if degrees else max_yaw_rate)
@@ -98,9 +101,11 @@ class TimeSpaceColav:
             if obs.distance(*p0) <= self.distance_threshold:
                 buffered_obstacles.append(obs.buffer(margin, **kwargs))
 
+        discount_power = 0
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
-            self.projector.v_des = (self.speed_factor**k) * self.desired_speed
+            self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
+            discount_power += 1
             logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f}")
 
             # Get timespace footprint, i.e. static polygons to be avoided
@@ -115,13 +120,25 @@ class TimeSpaceColav:
             moving_obstacles_as_dict = {obs.mmsi: obs for obs in buffered_obstacles}
             shore_as_dict = {i+1: self.shore[i] for i in range(len(self.shore))}
 
+            # Active node filters
+            active_node_filters = []
+            for node_filter in self.node_filters:
+                if isinstance(node_filter, COLREGS):
+                    if k < self.abort_colregs_after_iter:
+                        active_node_filters.append(node_filter)
+                    else:
+                        discount_power = 0
+                        logger.warning(f"Iteration {k+1}: aborting COLREGS compliance")
+                else:
+                    active_node_filters.append(node_filter)
+
             # Create path planner
             self.path_planner = VGPathPlanner(
                 p0,
                 pf,
                 obstacles = projected_obstacles_as_dict | shore_as_dict,
                 edge_filters = self.edge_filters,
-                node_filters = self.node_filters,
+                node_filters = active_node_filters,
                 plane = self.projector.plane,
                 heading = heading,
                 moving_obstacles_as_dict = moving_obstacles_as_dict, # Useful for COLREGs

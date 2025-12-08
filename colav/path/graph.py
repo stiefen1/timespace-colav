@@ -9,7 +9,7 @@ import networkx as nx
 from typing import List, Tuple, Optional, Dict
 from colav.path.filters import IEdgeFilter, INodeFilter
 from colav.obstacles.moving import MovingObstacle
-from shapely import Polygon, Point, LineString, MultiPoint
+from shapely import Polygon, Point, LineString, MultiPoint, MultiPolygon
 import matplotlib.pyplot as plt, logging
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,12 @@ def relocate_colliding_point(
                 logger.warning(f"{p_coll} is colliding with an obstacle, relocating (iteration {i+1}/{max_iter})")
                 colliding = True
                 line_from_p_coll_to_p_target = LineString([p_coll, p_target])
-                new_p_coll = line_from_p_coll_to_p_target.intersection(obs.buffer(buffer_distance).exterior)
+                buffered_obstacle = obs.buffer(buffer_distance)
+
+                if isinstance(buffered_obstacle, MultiPolygon):
+                    buffered_obstacle = buffered_obstacle.convex_hull
+
+                new_p_coll = line_from_p_coll_to_p_target.intersection(buffered_obstacle.exterior)
                 if isinstance(new_p_coll, MultiPoint):
                     new_p_coll = new_p_coll.geoms[-1]
                 assert isinstance(new_p_coll, Point), "Failed to relocate colliding point"

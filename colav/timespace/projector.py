@@ -1,7 +1,7 @@
 from colav.timespace.plane import Plane
 from colav.obstacles.moving import MovingObstacle
 from colav.path.pwl import PWLTrajectory, PWLPath
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from shapely import Polygon
 import numpy as np, logging
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ class TimeSpaceProjector:
     """
 
     _v_des: float
-    _plane: Plane | None = None
+    _plane: Optional[Plane] = None
 
     def __init__(
             self,
@@ -42,7 +42,7 @@ class TimeSpaceProjector:
         projected_obstacles = []    
         for obs in obstacles:
             # Compute intersection between moving obstacle and timespace plane
-            projected_vertices, times, valid = self._plane.intersection(obs.geometry, obs.velocity)
+            projected_vertices, times, valid = self._plane.intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
 
             # If at least one intersectio occurs in the future, obstacle is valid
             if valid:
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     from colav.obstacles import MovingObstacle, SHIP, MovingShip
     import matplotlib.pyplot as plt
 
-    obs = MovingShip.from_body((20, -40), 0, 2, 0, 10, 3, degrees=True)
+    obs = MovingShip.from_body((20, -40), 0, 2, 0, 10, 3, degrees=True, du=1, dchi=10)
     os = MovingObstacle((-20, -20), 45, (1, 1), SHIP(10, 3), degrees=True)
     projector = TimeSpaceProjector(2)
     projected_obstacles = projector.get((-20, -20), (20, 20), [obs.buffer(1)])
