@@ -46,7 +46,7 @@ class COLAVEnv:
             distance_threshold=distance_threshold,
             shore=[obs.buffer(self.buffer_static).simplify(self.simplify_static) for obs in shore],
             max_speed=max_speed,
-            max_yaw_rate=max_yaw_rate,
+            max_yaw_rate=max_yaw_rate, 
             colregs=colregs,
             good_seamanship=good_seamanship,
             path_planner=path_planner,
@@ -62,7 +62,7 @@ class COLAVEnv:
         # print("p0: ", p0, "pf: ", pf, "angle: ", 180*atan2(pf[0]-p0[0], pf[1]-p0[1])/pi)
         traj, info = self.planner.get(
             self.own_ship.position,
-            [obs.extend(self.buffer_moving) for obs in self.obstacles],
+            [obs.buffer(self.buffer_moving) for obs in self.obstacles],
             pf=self.path.interpolate(progression + self.lookahead_distance),
             heading=self.own_ship.psi,
             degrees=self.own_ship.degrees
@@ -70,13 +70,20 @@ class COLAVEnv:
 
         if traj is not None:
             speed, heading = traj.get_speed(0), traj.get_heading(0, degrees=self.own_ship.degrees)
-            
-            # Limit yaw rate to feasible values
-            desired_yaw_rate = (heading - self.own_ship.psi) / dt
-            yaw_rate = max(min(desired_yaw_rate, self.planner.max_yaw_rate), -self.planner.max_yaw_rate)
-            
-            # Integrate
-            self.own_ship = MovingShip.from_body(self.own_ship.position, self.own_ship.psi + yaw_rate * dt, speed, 0, self.own_ship.loa, self.own_ship.beam, degrees=self.own_ship.degrees, mmsi=self.own_ship.mmsi)
+        else:
+            speed, heading = 0, self.own_ship.psi
+
+        # Limit yaw rate to feasible values
+        desired_yaw_rate = (heading - self.own_ship.psi) / dt
+        # take double of the planner max yaw rate to have some margin
+        yaw_rate = max(min(desired_yaw_rate, 2 * self.planner.max_yaw_rate), - 2 * self.planner.max_yaw_rate)
+        
+        # Limit acceleration
+        desired_acceleration = (speed - self.own_ship.u) / dt
+        acc = max(min(desired_acceleration, 0.02), -0.02)
+
+        # Integrate
+        self.own_ship = MovingShip.from_body(self.own_ship.position, self.own_ship.psi + yaw_rate * dt, self.own_ship.u + acc * dt, 0, self.own_ship.loa, self.own_ship.beam, degrees=self.own_ship.degrees, mmsi=self.own_ship.mmsi)
 
         self.own_ship = self.own_ship.predict(dt)
         for i in range(len(self.obstacles)):
