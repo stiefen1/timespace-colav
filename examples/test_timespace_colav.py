@@ -37,8 +37,8 @@ shore = [
 
 safety_distance = 10 # Minimal distance w.r.t ship [m] -> very small here, should be at least > length overall
 
-ts1_with_sd = ts1.buffer(safety_distance).simplify(2)   # Add safety margin using Minkowski sum
-ts2_with_sd = ts2.buffer(safety_distance).simplify(2)   # Add safety margin using Minkowski sum
+ts1_with_sd = ts1.buffer(safety_distance) # .simplify(2)   # Add safety margin using Minkowski sum
+ts2_with_sd = ts2.buffer(safety_distance, minkowski=True).simplify(1)   # Add safety margin using Minkowski sum
 shore_with_sd = [obs.buffer(safety_distance).simplify(2) for obs in shore] # Add safety margin to the shore using Minkowski sum
 
 # Try swapping x values to see the result
@@ -60,7 +60,8 @@ traj, info = planner.get(
     pf=pf,                                # Target position of own ship 
     desired_heading=-75,
     obstacles=[ts1_with_sd, ts2_with_sd],   # Moving obstacles
-    heading=-70
+    heading=-70,
+    margin=0
 )  
 
 # Display target ships with their projected footprint
