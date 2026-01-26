@@ -68,7 +68,12 @@ def relocate_colliding_point(
                 new_p_coll = line_from_p_coll_to_p_target.intersection(buffered_obstacle.exterior)
                 if isinstance(new_p_coll, MultiPoint):
                     new_p_coll = new_p_coll.geoms[-1]
-                assert isinstance(new_p_coll, Point), "Failed to relocate colliding point"
+                elif isinstance(new_p_coll, LineString) and not(new_p_coll.is_empty):
+                    xy = tuple(new_p_coll.coords.xy[0])
+                    new_p_coll = Point(xy[0], xy[1])
+                elif not(isinstance(new_p_coll, Point)): 
+                    logger.warning(f"Failed to relocate colliding point. type={type(new_p_coll)}") # This can happen if both p_coll and p_target are inside an obstacle
+                    return p_coll
                 p_coll = (new_p_coll.x, new_p_coll.y)
                 break
         if not colliding:
@@ -133,10 +138,6 @@ class VisibilityGraph(nx.DiGraph):
         logger.debug(f"Received {len(obstacles_list)} obstacles, start populating nodes.")
 
         for obs in obstacles_list:
-            if obs.contains(Point(self.p_0)):
-                self.p_0 = relocate_colliding_point(
-                    self.p_0, self.p_f, obstacles_list, buffer_distance=relocation_buffer_distance
-                )
             if obs.contains(Point(self.p_f)):
                 self.p_f = relocate_colliding_point(
                     self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance

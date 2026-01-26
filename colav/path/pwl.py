@@ -74,6 +74,10 @@ class PWLTrajectory:
     def xyt(self) -> List[ Tuple[float, float, float] ]:
         return [(point[0], point[1], point[2]) for point in self._linestring.coords]
     
+    @property
+    def waypoints(self) -> List[ Tuple[float, float] ]:
+        return [(point[0], point[1]) for point in self._linestring.coords]
+    
     
 class PWLPath:
     def __init__(

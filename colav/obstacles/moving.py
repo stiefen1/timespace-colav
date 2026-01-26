@@ -156,9 +156,9 @@ class MovingShip(MovingObstacle):
     ):
         
         if dchi is not None:
-            assert dchi > 0, f"dchi must be greater than 0. Got dchi={dchi}"
+            assert dchi >= 0, f"dchi must be greater or equal to 0. Got dchi={dchi}"
         if du is not None:
-            assert du > 0, f"du must be greater than 0. Got du={du}"
+            assert du >= 0, f"du must be greater or equal to 0. Got du={du}"
 
         self.loa = loa
         self.beam = beam
@@ -205,7 +205,7 @@ class MovingShip(MovingObstacle):
                 logger.warning(f"{model} is not a valid prediction model option.")
                 return None
             
-    def resample_velocity(self) -> MovingShip:
+    def resample_velocity(self) -> "MovingShip":
         if self.du is None or self.dchi is None:
             logger.warning(f"resample_velocity has no effect if du or dchi are not specified.")
             return self
@@ -215,11 +215,21 @@ class MovingShip(MovingObstacle):
 
         return MovingShip.from_body(self.position, self.psi + dchi, self.u + du, self.v, self.loa, self.beam, degrees=self.degrees, mmsi=self.mmsi, dchi=self.dchi, du=self.du)
             
-    def extend(self, distance: float) -> MovingShip:
+    def buffer(self, distance: float, minkowski: bool = False, **kwargs) -> "MovingShip":
+        if minkowski:
+            new_ship = deepcopy(self)
+            new_ship.geometry_at_psi_equal_0 = [(x, y) for x, y in shapely.Polygon(new_ship.geometry_at_psi_equal_0).buffer(distance, **kwargs).exterior.coords]
+            new_ship.reset_geometry()
+            return new_ship
+
         return MovingShip.from_body(self.position, self.psi, self.u, self.v, self.loa + 2 * distance, self.beam + 2 * distance, degrees=self.degrees, mmsi=self.mmsi, dchi=self.dchi, du=self.du)
 
-
     def get_robust_geometry(self) -> Optional[List[ Tuple[float, float] ]]:
+        vel_norm = np.linalg.norm(np.array(self.velocity))
+        if vel_norm == 0:
+            logger.warning(f"Impossible to compute robust geometry because ship speed is {vel_norm} <= 0")
+            return self.geometry
+        
         robust_geometry = None
         if self.dchi is not None:
             poly_left = rotate(shapely.Polygon(self.geometry), self.dchi / 2, origin=self.position, use_radians=not(self.degrees))
@@ -266,10 +276,11 @@ class MovingShip(MovingObstacle):
 
         vel_center = np.array(self.velocity)
         vel_norm = np.linalg.norm(vel_center)
-        assert vel_norm > 0, f"Impossible to compute robust geometry because ship speed is {vel_norm} <= 0"
-        normalized_vel_center = vel_center / np.linalg.norm(vel_center)
+        if vel_norm == 0:
+            logger.warning(f"Impossible to compute robust geometry because ship speed is {vel_norm} <= 0")
+            return super().vertices_velocity
 
-        # print(rotation_matrix(self.dchi / 2, degrees=self.degrees).shape, normalized_vel_center.shape)
+        normalized_vel_center = vel_center / vel_norm
         normalized_vel_left = rotation_matrix(self.dchi / 2, degrees=self.degrees)[0:2, 0:2] @ normalized_vel_center
         normalized_vel_left_left = rotation_matrix(self.dchi, degrees=self.degrees)[0:2, 0:2] @ normalized_vel_center
         normalized_vel_right = rotation_matrix(-self.dchi / 2, degrees=self.degrees)[0:2, 0:2] @ normalized_vel_center

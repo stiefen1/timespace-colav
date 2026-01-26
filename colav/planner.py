@@ -59,7 +59,7 @@ class TimeSpaceColav:
     def get(
             self, 
             p0: Tuple[float, float], 
-            obstacles: List[MovingObstacle], 
+            obstacles: List[MovingShip], 
             *args, 
             heading: Optional[float] = None, 
             desired_heading: Optional[float] = None,
@@ -67,6 +67,9 @@ class TimeSpaceColav:
             margin: float = 0.0, 
             degrees: bool = True,
             lookahead_distance: float = 300, # distance of the artificial pf from p0. Only used if pf is not provided.
+            ts_in_TSS: bool = False,
+            os_in_TSS: bool = False,
+            good_seamanship: bool = False,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -93,20 +96,22 @@ class TimeSpaceColav:
 
             # Raise warning if heading is very different from the actual direction leading to pf
             angle_error = ssa(heading - desired_heading)
-            if abs(angle_error) >= DEG2RAD(45):
+            if abs(angle_error) >= DEG2RAD(90):
                 logger.warning(f"Heading angle is {RAD2DEG(heading):.0f} degrees, but target point is oriented towards {RAD2DEG(desired_heading):.0f} degrees")
 
-        buffered_obstacles: List[MovingObstacle] = []
+        buffered_obstacles: List[MovingShip] = []
         for obs in obstacles:
             if obs.distance(*p0) <= self.distance_threshold:
-                buffered_obstacles.append(obs.buffer(margin, **kwargs))
+                buffered_obstacles.append(obs.buffer(margin, **kwargs) if margin > 0 else obs)
 
         discount_power = 0
+        colregs_active = self.colregs
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
-            self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
+            # self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
+            self.projector.v_des = (1 / (1 + 5 * discount_power / self.max_iter)) * self.desired_speed
+            logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f} (discount power = {discount_power})")
             discount_power += 1
-            logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f}")
 
             # Get timespace footprint, i.e. static polygons to be avoided
             projected_obstacles: List[shapely.Polygon] = self.projector.get(
@@ -120,15 +125,20 @@ class TimeSpaceColav:
             moving_obstacles_as_dict = {obs.mmsi: obs for obs in buffered_obstacles}
             shore_as_dict = {i+1: self.shore[i] for i in range(len(self.shore))}
 
+            # Disable colregs if no solution was found before
+            if k >= self.abort_colregs_after_iter:
+                colregs_active = False
+
             # Active node filters
             active_node_filters = []
             for node_filter in self.node_filters:
                 if isinstance(node_filter, COLREGS):
-                    if k < self.abort_colregs_after_iter:
+                    if colregs_active:
                         active_node_filters.append(node_filter)
                     else:
-                        discount_power = 0
-                        logger.warning(f"Iteration {k+1}: aborting COLREGS compliance")
+                        if k == self.abort_colregs_after_iter:
+                            discount_power = 0
+                            logger.warning(f"Iteration {k+1}: aborting COLREGS compliance")
                 else:
                     active_node_filters.append(node_filter)
 
@@ -142,7 +152,10 @@ class TimeSpaceColav:
                 plane = self.projector.plane,
                 heading = heading,
                 moving_obstacles_as_dict = moving_obstacles_as_dict, # Useful for COLREGs
-                degrees = degrees
+                degrees = degrees,
+                ts_in_TSS = ts_in_TSS,
+                os_in_TSS = os_in_TSS,
+                good_seamanship = good_seamanship
             )
 
             if self.path_planner.has_path(): 
@@ -152,14 +165,22 @@ class TimeSpaceColav:
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
 
-                logger.info(f"speed and heading required for COLAV: {traj.get_speed(0):.1f} [m/s], {traj.get_heading(0):.1f} [deg]")
+                logger.info(f"speed and heading required for COLAV: {traj.get_speed(0):.1f} [m/s], {traj.get_heading(0, degrees=True):.1f} [deg]")
 
-                return traj, {'pf': pf} # TODO: Returns necessary speed and heading to reach first waypoint. 
+                return traj, {
+                    'pf': pf,
+                    'projected_obstacles': projected_obstacles,
+                    'shore': self.shore,
+                    'trajectory': traj
+                }  
 
 
         # if max_iter was reached, returns None
         logger.warning(f"Max number of iterations reached: no valid trajectory was found. Try decreasing the speed_factor or increasing the max number of iterations")
-        return None, {}
+        return None, {
+            'projected_obstacles': projected_obstacles,
+            'shore': self.shore
+        }
     
 if __name__ == "__main__":
     import colav, logging
