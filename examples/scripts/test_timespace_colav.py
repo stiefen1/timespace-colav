@@ -1,5 +1,4 @@
-from colav.timespace import Plane
-from colav.obstacles import MovingObstacle, MovingShip
+from colav.obstacles import MovingShip
 from colav.planner import TimeSpaceColav
 import matplotlib.pyplot as plt, logging, colav, numpy as np
 from shapely import Polygon, Point
@@ -31,15 +30,15 @@ ts2 = MovingShip.from_body(
 
 # Construct fake obstacles as shore: use .buffer to add safety margin.
 shore = [
-    Polygon([(0, 0), (30, 0), (30, 30), (0, 30), (0, 0)]), # Square obstacle
-    Point(-50, -50).buffer(20) # Circle obstacle
+    Polygon([(0, 0), (30, 0), (30, 30), (0, 30), (0, 0)]),  # Square obstacle
+    Point(-50, -50).buffer(20)                              # Circle obstacle
 ]
 
 safety_distance = 10 # Minimal distance w.r.t ship [m] -> very small here, should be at least > length overall
 
 ts1_with_sd = ts1.buffer(safety_distance) # .simplify(2)   # Add safety margin using Minkowski sum
 ts2_with_sd = ts2.buffer(safety_distance, minkowski=True).simplify(1)   # Add safety margin using Minkowski sum
-shore_with_sd = [obs.buffer(safety_distance).simplify(2) for obs in shore] # Add safety margin to the shore using Minkowski sum
+shore_with_sd = [Polygon(obs.buffer(safety_distance).simplify(2).boundary.coords) for obs in shore] # Add safety margin to the shore using Minkowski sum
 
 # Try swapping x values to see the result
 p0 = (100, -40) # Own ship position
@@ -49,16 +48,15 @@ planner = TimeSpaceColav(
     desired_speed=3,            # Desired speed
     distance_threshold=1000,    # Minimal distance to include target ships in trajectory planning
     shore=shore_with_sd,        # All the static obstacles with safety margin
-    max_speed=5,
-    max_course_rate=1,
-    max_iter=10,
-    colregs=True
+    max_speed=5,                # Maximum speed
+    max_course_rate=1,          # Max course rate
+    max_iter=10,                # Max number of iterations
+    colregs=True                # Whether to account for COLREGs or not
 )
 
 traj, info = planner.get(
     p0=p0,                                  # Inital position of own ship
-    pf=pf,                                # Target position of own ship 
-    desired_heading=-75,
+    pf=pf,                                  # Target position of own ship 
     obstacles=[ts1_with_sd, ts2_with_sd],   # Moving obstacles
     heading=-70,
     margin=0

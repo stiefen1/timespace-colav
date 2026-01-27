@@ -44,7 +44,7 @@ class COLAVEnv:
         self.planner = TimeSpaceColav(
             desired_speed=desired_speed,
             distance_threshold=distance_threshold,
-            shore=[obs.buffer(self.buffer_static).simplify(self.simplify_static) for obs in shore],
+            shore=[Polygon(obs.buffer(self.buffer_static).simplify(self.simplify_static).boundary.coords) for obs in self.shore],
             max_speed=max_speed,
             max_course_rate=max_course_rate, 
             colregs=colregs,
@@ -62,8 +62,8 @@ class COLAVEnv:
         # print("p0: ", p0, "pf: ", pf, "angle: ", 180*atan2(pf[0]-p0[0], pf[1]-p0[1])/pi)
         traj, info = self.planner.get(
             self.own_ship.position,
+            self.path.interpolate(progression + self.lookahead_distance),
             [obs.buffer(self.buffer_moving) for obs in self.obstacles],
-            pf=self.path.interpolate(progression + self.lookahead_distance),
             heading=self.own_ship.psi,
             degrees=self.own_ship.degrees
         )

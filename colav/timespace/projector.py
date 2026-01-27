@@ -26,7 +26,7 @@ class TimeSpaceProjector:
     ):
         self.v_des = v_des
 
-    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingObstacle]) -> List[ Polygon ]:
+    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip]) -> List[ Polygon ]:
         """
         Convert a list of moving obstacles into a list of static obstacles as list of vertices.
         The projection is done using a timespace plane designed to reach p_des from p with a desired velocity. 
@@ -44,7 +44,7 @@ class TimeSpaceProjector:
             # Compute intersection between moving obstacle and timespace plane
             projected_vertices, times, valid = self._plane.intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
 
-            # If at least one intersectio occurs in the future, obstacle is valid
+            # If at least one intersection occurs in the future, obstacle is valid
             if valid:
                 projected_obstacles.append(Polygon(projected_vertices))
 
@@ -55,8 +55,9 @@ class TimeSpaceProjector:
     def add_timestamps(self, path: PWLPath) -> PWLTrajectory:
         if self._plane is not None:
             xy = np.array(path.xy)
-            t = self._plane.get_time(xy[:, 0], xy[:, 1])[:, None]
-            xyt = np.concatenate([xy, t], axis=1)
+            t = self._plane.get_time(xy[:, 0], xy[:, 1])
+            assert isinstance(t, np.ndarray), f"xy[:, 0], xy[:, 1] must be a numpy array, Got xy[:, 0]={xy[:, 0]}, xy[:, 1]={xy[:, 1]}"
+            xyt = np.concatenate([xy, t[:, None]], axis=1)
             return PWLTrajectory(xyt.tolist())
         else:
             raise ValueError(f"Plane is None. Try calling .get() first to initialize timespace plane.")

@@ -28,7 +28,7 @@ class SpeedConstraint(IEdgeFilter):
         edge_speed = ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)**0.5 / (t2 - t1)
         return edge_speed <= self.speed, info
     
-class YawRateConstraint(IEdgeFilter):
+class CourseRateConstraint(IEdgeFilter):
     def __init__(
         self,
         course_rate: float # radians
@@ -45,21 +45,21 @@ class YawRateConstraint(IEdgeFilter):
             return True, info
         
         if heading is None:
-            logger.warning(f"Yaw rate constraint is enabled but the own ship's heading was not provided (course rate constraint will be ignored).")
+            logger.warning(f"Course rate constraint is enabled but the own ship's heading was not provided (course rate constraint will be ignored).")
             return True, info
 
         # Compute edge speed
         dt = plane.get_time(*p2) - plane.get_time(*p1)
+        assert isinstance(dt, float), f"dt must be a float, got dt={dt}"
 
         if dt <= 0:
             return False, info
         
-        # edge_speed = edge_length / dt
         edge_angle = atan2(p2[0] - p1[0], p2[1] - p1[1])
         angle_error = ssa(edge_angle - heading)
         course_rate_required = abs(angle_error) / dt
         is_valid = course_rate_required <= self.course_rate
-        return is_valid, info # Warning is here because dt can be a numpy array in theory
+        return is_valid, info
 
 class COLREGS(INodeFilter):
     def __init__(

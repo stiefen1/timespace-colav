@@ -10,7 +10,7 @@ from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
 from colav.path.planning import VGPathPlanner
-from colav.timespace.constraints import SpeedConstraint, YawRateConstraint, COLREGS
+from colav.timespace.constraints import SpeedConstraint, CourseRateConstraint, COLREGS
 import shapely, logging
 from colav.utils.math import DEG2RAD, RAD2DEG, ssa
 from math import atan2, cos, sin
@@ -50,7 +50,7 @@ class TimeSpaceColav:
         self.abort_colregs_after_iter = abort_colregs_after_iter or max_iter // 2 # If abort_colregs_after_iter is not specified, we abort it at max_iter // 2
         self.edge_filters = [
             SpeedConstraint(speed=max_speed),
-            YawRateConstraint(course_rate=DEG2RAD(max_course_rate) if degrees else max_course_rate)
+            CourseRateConstraint(course_rate=DEG2RAD(max_course_rate) if degrees else max_course_rate)
         ]
         self.node_filters = [COLREGS(good_seamanship=good_seamanship)] if colregs else []
 
@@ -58,15 +58,13 @@ class TimeSpaceColav:
 
     def get(
             self, 
-            p0: Tuple[float, float], 
+            p0: Tuple[float, float],
+            pf: Tuple[float, float],
             obstacles: List[MovingShip], 
             *args, 
             heading: Optional[float] = None, 
-            desired_heading: Optional[float] = None,
-            pf: Optional[Tuple[float, float]] = None, 
             margin: float = 0.0, 
             degrees: bool = True,
-            lookahead_distance: float = 300, # distance of the artificial pf from p0. Only used if pf is not provided.
             ts_in_TSS: bool = False,
             os_in_TSS: bool = False,
             good_seamanship: bool = False,
@@ -81,21 +79,15 @@ class TimeSpaceColav:
 
         Keywords argument can be used to affect the shapely.buffer method's behaviour
         """
-        # TODO: Add desired_heading: Optional[float] = None as a replacement to pf
+        desired_heading = atan2(pf[0]-p0[0], pf[1]-p0[1])
 
-        assert desired_heading is not None or pf is not None, f"Either desired_heading or pf must be provided. Got desired_heading={desired_heading} and pf={pf}"
-
-        if pf is not None: # pf has priority over desired_heading
-            desired_heading = atan2(pf[0]-p0[0], pf[1]-p0[1])
-        elif desired_heading is not None:
-            desired_heading = DEG2RAD(desired_heading) if degrees else desired_heading
-            pf = (p0[0] + lookahead_distance * sin(desired_heading), p0[1] + lookahead_distance * cos(desired_heading))
-
-        if (heading is not None) and (desired_heading is not None):
+        if heading is not None:
             heading = DEG2RAD(heading) if degrees else heading
 
-            # Raise warning if heading is very different from the actual direction leading to pf
+            assert heading is not None, f"heading is None."
             angle_error = ssa(heading - desired_heading)
+
+            # Raise warning if heading is very different from the actual direction leading to pf
             if abs(angle_error) >= DEG2RAD(90):
                 logger.warning(f"Heading angle is {RAD2DEG(heading):.0f} degrees, but target point is oriented towards {RAD2DEG(desired_heading):.0f} degrees")
 
@@ -106,6 +98,7 @@ class TimeSpaceColav:
 
         discount_power = 0
         colregs_active = self.colregs
+        projected_obstacles = []
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
             # self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed

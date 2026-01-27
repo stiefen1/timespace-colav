@@ -8,7 +8,6 @@ import matplotlib
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
 
-
 class ScenarioRunner:
     def __init__(
         self,
@@ -93,9 +92,6 @@ class ScenarioRunner:
             own_traj.append(own_ship.position)
             for i, obs in enumerate(obstacles):
                 obs_trajs[i].append(obs.position)
-            # projected_obstacles = self.env.planner.projector.get(self.env.own_ship.position, self.env.path.interpolate(self.env.path.progression(*self.env.own_ship.position) + self.env.lookahead_distance), [obs.extend(self.env.buffer_moving) for obs in self.env.obstacles])
-            # for proj_obs in projected_obstacles:
-            #     ax.plot(*proj_obs.exterior.xy, c='green')
 
             if done:
                 logger.info(f"Reached final point of the desired path, ending scenario..")
@@ -136,11 +132,11 @@ class ScenarioRunner:
             ax3.legend()
             ax3.set_ylim((0, self.env.planner.max_speed + 1))
             ax4.plot(times, course_rates)
-            ax4.axhline(y=2*self.env.planner.max_course_rate, color='orange', linestyle='--', label='Max Yaw Rate')
-            ax4.axhline(y=-2*self.env.planner.max_course_rate, color='orange', linestyle='--', label='Min Yaw Rate')
-            ax4.set_title('Own Ship Yaw Rate')
+            ax4.axhline(y=2*self.env.planner.max_course_rate, color='orange', linestyle='--', label='Max Course Rate')
+            ax4.axhline(y=-2*self.env.planner.max_course_rate, color='orange', linestyle='--', label='Min Course Rate')
+            ax4.set_title('Own Ship Course Rate')
             ax4.set_xlabel('Time (s)')
-            ax4.set_ylabel('Yaw Rate (rad/s)')
+            ax4.set_ylabel('Course Rate (rad/s)')
             if self.env.planner.max_course_rate != float('inf'):
                 ax4.set_ylim((-2*self.env.planner.max_course_rate - 1, 2*self.env.planner.max_course_rate + 1))
             ax4.legend()
@@ -153,7 +149,7 @@ class ScenarioRunner:
 
 if __name__ == "__main__":
     import colav
-    colav.configure_logging(logging.INFO)
+    colav.configure_logging(logging.ERROR)
 
     env = COLAVEnv(
             MovingShip.from_body((-200, -200), 45, 3, 0, 10, 3, degrees=True),

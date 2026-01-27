@@ -1,11 +1,8 @@
-import matplotlib.pyplot as plt, numpy as np, os
+import matplotlib.pyplot as plt, numpy as np
 from matplotlib.widgets import Slider
+from matplotlib.lines import Line2D
 from colav.obstacles.moving import MovingShip
-from colav.colregs.encounters import get_recommendation_for_os, get_encounter, Encounter
-
-
-# def clear_terminal():
-#     os.system('cls' if os.name == 'nt' else 'clear')
+from colav.colregs.encounters import get_recommendation_for_os, Encounter
 
 class InteractiveEncounter:
     def __init__(self):
@@ -149,7 +146,7 @@ class InteractiveEncounter:
         legend_elements = []
         for encounter, color in encounter_colors.items():
             if encounter != Encounter.INVALID:
-                legend_elements.append(plt.Line2D([0], [0], marker='o', c='w', 
+                legend_elements.append(Line2D([0], [0], marker='o', c='w', 
                                                 markerfacecolor=color, markersize=10, 
                                                 label=encounter.name))
         

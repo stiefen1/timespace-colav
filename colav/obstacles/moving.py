@@ -224,6 +224,15 @@ class MovingShip(MovingObstacle):
 
         return MovingShip.from_body(self.position, self.psi, self.u, self.v, self.loa + 2 * distance, self.beam + 2 * distance, degrees=self.degrees, mmsi=self.mmsi, dchi=self.dchi, du=self.du)
 
+    def simplify(self, tolerance: float, preserve_topology: bool = True, **kwargs) -> "MovingShip":
+        """
+        """
+        new_self = deepcopy(self)
+        new_geometry_as_polygon = shapely.simplify(shapely.Polygon(self.geometry_at_psi_equal_0), tolerance, preserve_topology=preserve_topology, **kwargs)
+        new_self.geometry_at_psi_equal_0 = list(zip(*new_geometry_as_polygon.exterior.xy))
+        new_self.reset_geometry()
+        return new_self
+
     def get_robust_geometry(self) -> Optional[List[ Tuple[float, float] ]]:
         vel_norm = np.linalg.norm(np.array(self.velocity))
         if vel_norm == 0:
