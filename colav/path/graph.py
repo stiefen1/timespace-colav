@@ -1,34 +1,63 @@
 """
-Visibility graph implementation for path planning with obstacles.
+Visibility graph implementation for maritime path planning.
 
-Creates a graph where nodes are obstacle vertices and start/end points,
-and edges connect visible (collision-free) node pairs.
+Constructs graphs connecting obstacle vertices and waypoints through
+line-of-sight edges for optimal collision-free path computation.
+Essential component for geometric path planning in obstacle environments.
+
+Key Components
+--------------
+is_edge_visible : function
+    Check collision-free visibility between points
+relocate_colliding_point : function  
+    Move points outside obstacle boundaries
+VisibilityGraph : class
+    NetworkX-based visibility graph for path planning
+
+Notes
+-----
+Designed for polygonal static obstacles in maritime navigation.
+Integrates with filter systems for constraint enforcement.
 """
 
 import networkx as nx
 from typing import List, Tuple, Optional, Dict
 from colav.path.filters import IEdgeFilter, INodeFilter
-from colav.obstacles.moving import MovingObstacle
-from shapely import Polygon, Point, LineString, MultiPoint, MultiPolygon
+from shapely import Polygon, Point, LineString, MultiPoint 
 import matplotlib.pyplot as plt, logging
 logger = logging.getLogger(__name__)
 
+NUMBER_OF_NODES_BEFORE_WARNING = 100
 
 def is_edge_visible(edge: LineString, obstacles: List[Polygon]) -> bool:
     """
-    Check if an edge (line segment) is visible (collision-free) among obstacles.
+    Check if edge is collision-free among obstacles.
     
-    Args:
-        edge: LineString representing the edge to check
-        obstacles: List of polygon obstacles
+    Tests whether a straight line segment intersects with any obstacle
+    interior. Essential for visibility graph construction.
+    
+    Parameters
+    ----------
+    edge : LineString
+        Line segment to test for collisions.
+    obstacles : list of Polygon
+        Static obstacle geometries to check against.
         
-    Returns:
-        True if edge doesn't intersect any obstacle interior
+    Returns
+    -------
+    bool
+        True if edge is collision-free, False if intersecting obstacles.
+        
+    Notes
+    -----
+    Uses Shapely geometric predicates for robust collision detection.
+    Distinguishes between crossing (collision) and touching (boundary contact).
     """
     for polygon in obstacles:
         if (polygon.crosses(edge) and not polygon.touches(edge)) or edge.within(polygon):
             return False
     return True
+
 
 def relocate_colliding_point(
     p_coll: Tuple[float, float], 
@@ -38,20 +67,34 @@ def relocate_colliding_point(
     buffer_distance: float = 1e-3
 ) -> Tuple[float, float]:
     """
-    Move a point outside obstacles if it's colliding.
+    Relocate point outside obstacles using iterative projection.
     
-    Iteratively moves the point along the line toward the target until
-    it's no longer inside any obstacle.
+    Moves colliding points to obstacle boundaries along the line toward
+    target. Used to ensure start/end points are in collision-free space.
     
-    Args:
-        p_coll: Point that may be colliding with obstacles
-        p_target: Target point to move toward
-        obstacles: List of polygon obstacles to avoid
-        max_iter: Maximum relocation attempts
-        buffer_distance: Small buffer distance for obstacle boundary
+    Parameters
+    ----------
+    p_coll : tuple of float
+        Point coordinates (x, y) that may be inside obstacles.
+    p_target : tuple of float
+        Target point coordinates (x, y) to move toward.
+    obstacles : list of Polygon
+        Obstacle geometries to avoid.
+    max_iter : int, default 10
+        Maximum relocation iterations before giving up.
+    buffer_distance : float, default 1e-3
+        Small buffer distance from obstacle boundary.
         
-    Returns:
-        Relocated point coordinates
+    Returns
+    -------
+    tuple of float
+        Relocated point coordinates (x, y).
+        
+    Notes
+    -----
+    Uses line-obstacle intersection to find boundary points.
+    Handles complex geometry types (Point, MultiPoint, LineString).
+    May fail if both points are inside obstacles.
     """
     for i in range(max_iter):
         colliding = False
@@ -60,17 +103,16 @@ def relocate_colliding_point(
                 logger.warning(f"{p_coll} is colliding with an obstacle, relocating (iteration {i+1}/{max_iter})")
                 colliding = True
                 line_from_p_coll_to_p_target = LineString([p_coll, p_target])
-                buffered_obstacle = obs.buffer(buffer_distance)
-
-                if isinstance(buffered_obstacle, MultiPolygon):
-                    buffered_obstacle = buffered_obstacle.convex_hull
+                buffered_obstacle = Polygon(obs.buffer(buffer_distance).exterior.coords)
 
                 new_p_coll = line_from_p_coll_to_p_target.intersection(buffered_obstacle.exterior)
                 if isinstance(new_p_coll, MultiPoint):
                     new_p_coll = new_p_coll.geoms[-1]
                 elif isinstance(new_p_coll, LineString) and not(new_p_coll.is_empty):
-                    xy = tuple(new_p_coll.coords.xy[0])
-                    new_p_coll = Point(xy[0], xy[1])
+                    # xy = tuple(new_p_coll.coords.xy[0]) -> old version, before claude told me it was wrong. Was it ?
+                    # new_p_coll = Point(xy[0], xy[1])
+                    coords = list(new_p_coll.coords)
+                    new_p_coll = Point(coords[0])
                 elif not(isinstance(new_p_coll, Point)): 
                     logger.warning(f"Failed to relocate colliding point. type={type(new_p_coll)}") # This can happen if both p_coll and p_target are inside an obstacle
                     return p_coll
@@ -84,10 +126,73 @@ def relocate_colliding_point(
 
 class VisibilityGraph(nx.DiGraph):
     """
-    Visibility graph for path planning in obstacle environments.
+    Visibility graph for obstacle-aware path planning.
     
-    Builds a directed graph where nodes are obstacle vertices plus start/end points,
-    and edges connect mutually visible (collision-free) node pairs.
+    Constructs a directed graph where nodes represent obstacle vertices
+    plus start/end waypoints, connected by collision-free visibility edges.
+    Enables optimal geometric path planning using graph algorithms.
+    
+    Parameters
+    ----------
+    p_0 : tuple of float
+        Start point coordinates (x, y) in meters.
+    p_f : tuple of float
+        Target point coordinates (x, y) in meters.
+    obstacles : dict of int to Polygon, optional
+        Mapping from obstacle IDs to Polygon geometries.
+    edge_filters : list of IEdgeFilter, optional
+        Constraint filters applied to potential edges.
+    node_filters : list of INodeFilter, optional
+        Constraint filters applied to obstacle vertices.
+    **kwargs
+        Additional arguments passed to filter functions.
+        
+    Attributes
+    ----------
+    p_0, p_f : tuple of float
+        Start and target point coordinates (may be relocated).
+    obstacles : dict
+        Obstacle ID to Polygon mapping.
+    edge_filters, node_filters : list
+        Applied constraint filters.
+        
+    Methods
+    -------
+    populate_nodes(**kwargs)
+        Add all graph nodes (waypoints + obstacle vertices)
+    populate_edges(**kwargs)
+        Add collision-free visibility edges between nodes
+        
+    Examples
+    --------
+    Basic visibility graph construction:
+    
+    >>> from shapely import Polygon
+    >>> obstacles = {1: Polygon([(0,0), (10,0), (10,10), (0,10)])}
+    >>> vg = VisibilityGraph((-5,-5), (15,15), obstacles)
+    >>> print(f"Graph has {len(vg.nodes)} nodes, {len(vg.edges)} edges")
+    
+    With custom filters:
+    
+    >>> from colav.path.filters import AngleFilter
+    >>> vg = VisibilityGraph(
+    ...     (-5,-5), (15,15), obstacles,
+    ...     edge_filters=[AngleFilter()],
+    ...     max_angle=45  # Passed to filters
+    ... )
+    
+    Notes
+    -----
+    - Inherits from NetworkX DiGraph for standard graph algorithms
+    - Node IDs: 0=start, positive=obstacle vertices, -1=target
+    - Edge weights set to Euclidean distances
+    - Computational complexity: O(n²) for n vertices
+    - Use obstacle simplification for complex polygons (>100 vertices)
+    
+    See Also
+    --------
+    VGPathPlanner : Higher-level path planning interface
+    colav.path.filters : Constraint filter implementations
     """
     
     def __init__(
@@ -100,14 +205,30 @@ class VisibilityGraph(nx.DiGraph):
         **kwargs
     ):
         """
-        Initialize visibility graph.
+        Initialize visibility graph with obstacles and constraints.
         
-        Args:
-            p_0: Start point coordinates
-            p_f: End point coordinates  
-            obstacles: Dictionary mapping obstacle IDs to Polygon objects
-            edge_filters: List of functions to filter allowable edges
-            **kwargs: Additional arguments passed to node/edge population
+        Constructs complete visibility graph by adding all nodes
+        (waypoints + obstacle vertices) and connecting visible pairs.
+        
+        Parameters
+        ----------
+        p_0 : tuple of float
+            Start waypoint coordinates (x, y).
+        p_f : tuple of float  
+            Target waypoint coordinates (x, y).
+        obstacles : dict of int to Polygon, optional
+            Static obstacles mapped by unique IDs.
+        edge_filters : list of IEdgeFilter, optional
+            Filters to constrain allowable edges.
+        node_filters : list of INodeFilter, optional
+            Filters to constrain allowable nodes.
+        **kwargs
+            Additional arguments passed to populate methods and filters.
+            
+        Notes
+        -----
+        Graph construction happens during initialization.
+        Start/target points are automatically relocated if inside obstacles.
         """
         self.p_0 = p_0
         self.p_f = p_f
@@ -123,13 +244,25 @@ class VisibilityGraph(nx.DiGraph):
 
     def populate_nodes(self, relocation_buffer_distance: float = 1e-3, **kwargs) -> None:
         """
-        Add all nodes to the graph: start point, obstacle vertices, end point.
+        Add all graph nodes: waypoints and obstacle vertices.
         
-        Relocates start/end points if they're inside obstacles.
-        Node IDs: 0 = start, positive = obstacle vertices, -1 = end
+        Creates nodes for start point (ID=0), all obstacle vertices
+        (positive IDs), and target point (ID=-1). Applies node filters
+        and relocates waypoints if they collide with obstacles.
         
-        Args:
-            relocation_buffer_distance: Buffer distance for obstacle boundary relocation
+        Parameters
+        ----------
+        relocation_buffer_distance : float, default 1e-3
+            Buffer distance for obstacle boundary relocation.
+        **kwargs
+            Additional arguments passed to node filters.
+            
+        Notes
+        -----
+        - Node numbering: 0=start, 1,2,3...=vertices, -1=target
+        - Skips first polygon vertex (duplicate of last)
+        - Issues warning if graph exceeds 100 nodes (performance concern)
+        - Node attributes include position, obstacle ID, and filter results
         """
         node_idx = 1
 
@@ -142,12 +275,15 @@ class VisibilityGraph(nx.DiGraph):
                 self.p_f = relocate_colliding_point(
                     self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance
                 )
+            if obs.contains(Point(self.p_0)):
+                self.p_0 = relocate_colliding_point(
+                    self.p_0, self.p_f, obstacles_list, buffer_distance=relocation_buffer_distance
+                )
 
         # Add start node
         self.add_node(0, pos=self.p_0, id=0, label='start')
         
         # Add obstacle vertex nodes
-        i: int = 0
         for obstacle_id, polygon in self.obstacles.items():
             assert obstacle_id != -1 and obstacle_id != 0, f"Obstacle ID must be != -1, 0. Got {obstacle_id}"
 
@@ -178,19 +314,29 @@ class VisibilityGraph(nx.DiGraph):
         self.add_node(-1, pos=self.p_f, id=-1, label='end')
         logger.debug(f"Successfully populated {node_idx} nodes.")
 
-        if i > 100:
-            logger.warning(f"Graph contains {node_idx} > 100 nodes, potentially leading to high computational demand. Try to simplify the obstacles shape using shapely.simplify() method.")
+        if node_idx > NUMBER_OF_NODES_BEFORE_WARNING:
+            logger.warning(f"Graph contains {node_idx} > {NUMBER_OF_NODES_BEFORE_WARNING} nodes, potentially leading to high computational demand. Try to simplify the obstacles shape using shapely.simplify() method.")
 
     def populate_edges(self, **kwargs) -> None:
         """
-        Add edges between all mutually visible node pairs.
+        Connect all mutually visible node pairs with weighted edges.
         
-        Tests visibility between every pair of nodes and adds edges for
-        collision-free connections that pass all filter criteria.
-        Edge weights are set to Euclidean distance.
+        Tests line-of-sight visibility between every node pair,
+        applies edge filters, and adds collision-free connections
+        with Euclidean distance weights.
         
-        Args:
-            **kwargs: Additional arguments passed to edge filters
+        Parameters
+        ----------
+        **kwargs
+            Additional arguments passed to edge filters.
+            
+        Notes
+        -----
+        - Computational complexity: O(n²) for n nodes
+        - Edge weights represent straight-line distances in meters
+        - Visibility test performed before expensive filter evaluation
+        - Self-loops automatically excluded (node_1 != node_2)
+        - Failed filter results immediately break evaluation chain
         """
         obstacles_list = list(self.obstacles.values())
 
@@ -252,20 +398,27 @@ if __name__ == "__main__":
         max_angle=-30
     )
     
-    # Plot results
-    _, ax = plt.subplots(figsize=(10, 8))
+    # Create clean visualization
+    fig, ax = plt.subplots(figsize=(10, 8))
     
-    # Plot graph, obstacles, and optimal path
-    planner.plot(ax=ax, with_labels=True, node_color='lightblue', node_size=300)
-    ship1.fill(ax=ax, c='red', alpha=0.5, label='Ship 1')
-    ship2.fill(ax=ax, c='red', alpha=0.5, label='Ship 2')
+    # Plot visibility graph with clean styling
+    planner.plot(ax=ax, with_labels=True, node_color='#2a9d8f', 
+                node_size=200, edge_color='#264653')
     
-    # Plot shortest path
-    optimal_path = planner.get_dijkstra_path()
-    optimal_path.plot(ax=ax, c='blue', linewidth=3, label='Optimal Path')
+    # Plot obstacles with maritime colors
+    ship1.fill(ax=ax, c='#e63946', alpha=0.7, label='Ship 1')
+    ship2.fill(ax=ax, c='#e63946', alpha=0.7, label='Ship 2')
     
-    ax.legend()
-    ax.set_title('Visibility Graph Path Planning')
-    ax.grid(True, alpha=0.3)
+    # Plot optimal path
+    optimal_path = planner.get()
+    optimal_path.plot(ax=ax, c='#f77f00', linewidth=3, label='Optimal Path')
+    
+    ax.set_facecolor('#f8f9fa')
+    ax.grid(True, alpha=0.3, color='#dee2e6')
+    ax.set_title('Visibility Graph Path Planning', fontsize=14, pad=15)
+    ax.legend(frameon=True, fancybox=True, shadow=True)
+    ax.set_aspect('equal')
+    
+    plt.tight_layout()
     plt.show()
 

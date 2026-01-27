@@ -1,5 +1,5 @@
 """
-Time-space collision avoidance library
+Timespace collision avoidance library
 """
 
 __version__ = "0.1.0"

@@ -1,6 +1,6 @@
 # TimeSpace-COLAV 🚢
 
-A Python library for time-space collision avoidance in maritime navigation and autonomous systems.
+A Python library for timespace collision avoidance in maritime navigation and autonomous systems.
 
 ## 🚀 Quick Start
 
@@ -39,7 +39,7 @@ The library automatically installs the following dependencies:
 ## 📦 What's Included
 
 This package provides tools for:
-- Time-space projections for moving obstacles
+- Timespace projections for moving obstacles
 - Ship geometry and dynamics modeling
 - Collision avoidance & path planning
 - Visualization utilities

@@ -93,7 +93,7 @@ if traj is not None:
 # ax.set_ylim((-150, 150))
 ax.set_xlabel("East [m]")
 ax.set_ylabel("North [m]")
-ax.set_title(f"Target ships, time-space footprints and static obstacles with margin")
+ax.set_title(f"Target ships, timespace footprints and static obstacles with margin")
 ax.set_aspect('equal')
 ax.legend()
 plt.show()

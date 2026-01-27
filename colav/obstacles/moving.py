@@ -236,7 +236,7 @@ class MovingShip(MovingObstacle):
     def get_robust_geometry(self) -> Optional[List[ Tuple[float, float] ]]:
         vel_norm = np.linalg.norm(np.array(self.velocity))
         if vel_norm == 0:
-            logger.warning(f"Impossible to compute robust geometry because ship speed is {vel_norm} <= 0")
+            logger.warning(f"Impossible to compute robust geometry for ship {self.mmsi} because speed is {vel_norm} <= 0")
             return self.geometry
         
         robust_geometry = None

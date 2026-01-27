@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="timespace-colav",
     version="0.1.0",
-    description="Time-space collision avoidance library",
+    description="Timespace collision avoidance library",
     author="Stephen Monnet",
     author_email="stephen.monnet@outlook.com",
     packages=find_packages(),

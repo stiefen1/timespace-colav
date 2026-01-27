@@ -153,7 +153,7 @@ class TimeSpaceColav:
 
             if self.path_planner.has_path(): 
                 # Compute optimal path
-                path: PWLPath = self.path_planner.get_dijkstra_path()
+                path: PWLPath = self.path_planner.get()
 
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
