@@ -23,7 +23,7 @@ class TimeSpaceColav:
             distance_threshold: float = 3e3, # Distance at which colav is enabled
             shore: Optional[ List[shapely.Polygon] ] = None,
             max_speed: float = float('inf'),
-            max_yaw_rate: float = float('inf'),
+            max_course_rate: float = float('inf'),
             colregs: bool = False,
             good_seamanship: bool = False,
             path_planner: Optional[PathPlanner] = None,
@@ -34,14 +34,14 @@ class TimeSpaceColav:
     ):
         assert desired_speed > 0, f"Desired speed must be > 0. Got {desired_speed} <= 0 instead."
         assert max_speed > 0, f"Maximum speed must be > 0. Got {max_speed} <= 0 instead."
-        assert max_yaw_rate > 0, f"Maximum yaw rate must be > 0. Got {max_yaw_rate} <= 0 instead."
+        assert max_course_rate > 0, f"Maximum course rate must be > 0. Got {max_course_rate} <= 0 instead."
         assert 0 < speed_factor <= 1, f"Speed factor must be in ]0, 1]. Got {speed_factor} instead."
 
         self.desired_speed = desired_speed
         self.distance_threshold = distance_threshold
         self.shore = shore or []
         self.max_speed = max_speed
-        self.max_yaw_rate = max_yaw_rate
+        self.max_course_rate = max_course_rate
         self.colregs = colregs
         self.projector = TimeSpaceProjector(self.desired_speed)
         self.path_planner = path_planner or PathPlanner()
@@ -50,7 +50,7 @@ class TimeSpaceColav:
         self.abort_colregs_after_iter = abort_colregs_after_iter or max_iter // 2 # If abort_colregs_after_iter is not specified, we abort it at max_iter // 2
         self.edge_filters = [
             SpeedConstraint(speed=max_speed),
-            YawRateConstraint(yaw_rate=DEG2RAD(max_yaw_rate) if degrees else max_yaw_rate)
+            YawRateConstraint(course_rate=DEG2RAD(max_course_rate) if degrees else max_course_rate)
         ]
         self.node_filters = [COLREGS(good_seamanship=good_seamanship)] if colregs else []
 
@@ -75,7 +75,7 @@ class TimeSpaceColav:
         """
         Returns the shortest trajectory between p0 and pf to avoid obstacles as a piecewise-linear path parameterized in time.
 
-        If heading is provided and self.max_yaw_rate was provided at initialization, it can be used as a constraint. 
+        If heading is provided and self.max_course_rate was provided at initialization, it can be used as a constraint. 
 
         margin is the dilatation applied to the obstacles through the shapely.buffer() method.
 

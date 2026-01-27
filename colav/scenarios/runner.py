@@ -29,7 +29,7 @@ class ScenarioRunner:
         own_traj = []
         obs_trajs = []
         speeds = []
-        yaw_rates = []
+        course_rates = []
         prev_psi = None
 
         for ti in tqdm.tqdm(np.arange(0, self.tf, self.dt)):
@@ -78,15 +78,15 @@ class ScenarioRunner:
             dists = [np.linalg.norm(np.array(own_ship.position) - np.array(obs.position)) for obs in obstacles]
             distances.append(dists)
 
-            # Collect speed and yaw rate
+            # Collect speed and course rate
             speed = np.sqrt(own_ship.u**2 + own_ship.v**2)
             speeds.append(speed)
             current_psi = own_ship.psi
             if prev_psi is not None:
-                yaw_rate = (current_psi - prev_psi) / self.dt
-                yaw_rates.append(yaw_rate)
+                course_rate = (current_psi - prev_psi) / self.dt
+                course_rates.append(course_rate)
             else:
-                yaw_rates.append(0)  # For the first point
+                course_rates.append(0)  # For the first point
             prev_psi = current_psi
 
             # Update trajectories
@@ -126,8 +126,8 @@ class ScenarioRunner:
             plt.close(fig2)
             logger.info("Saved distance_plot.png")
 
-        # Create speed and yaw rate plot
-        if speeds and yaw_rates:
+        # Create speed and course rate plot
+        if speeds and course_rates:
             fig3, (ax3, ax4) = plt.subplots(2, 1, figsize=(8, 6))
             ax3.plot(times, speeds)
             ax3.axhline(y=self.env.planner.max_speed, color='green', linestyle='--', label='Max Speed')
@@ -135,19 +135,19 @@ class ScenarioRunner:
             ax3.set_ylabel('Speed (m/s)')
             ax3.legend()
             ax3.set_ylim((0, self.env.planner.max_speed + 1))
-            ax4.plot(times, yaw_rates)
-            ax4.axhline(y=2*self.env.planner.max_yaw_rate, color='orange', linestyle='--', label='Max Yaw Rate')
-            ax4.axhline(y=-2*self.env.planner.max_yaw_rate, color='orange', linestyle='--', label='Min Yaw Rate')
+            ax4.plot(times, course_rates)
+            ax4.axhline(y=2*self.env.planner.max_course_rate, color='orange', linestyle='--', label='Max Yaw Rate')
+            ax4.axhline(y=-2*self.env.planner.max_course_rate, color='orange', linestyle='--', label='Min Yaw Rate')
             ax4.set_title('Own Ship Yaw Rate')
             ax4.set_xlabel('Time (s)')
             ax4.set_ylabel('Yaw Rate (rad/s)')
-            if self.env.planner.max_yaw_rate != float('inf'):
-                ax4.set_ylim((-2*self.env.planner.max_yaw_rate - 1, 2*self.env.planner.max_yaw_rate + 1))
+            if self.env.planner.max_course_rate != float('inf'):
+                ax4.set_ylim((-2*self.env.planner.max_course_rate - 1, 2*self.env.planner.max_course_rate + 1))
             ax4.legend()
             fig3.tight_layout()
-            fig3.savefig('speed_yaw_plot.png')
+            fig3.savefig('speed_course_plot.png')
             plt.close(fig3)
-            logger.info("Saved speed_yaw_plot.png")
+            logger.info("Saved speed_course_plot.png")
 
             
 
@@ -168,7 +168,7 @@ if __name__ == "__main__":
                 Point(200, 0).buffer(100)
             ],
             max_speed=3,
-            max_yaw_rate=0.5,
+            max_course_rate=0.5,
             colregs=True,
             degrees=True,
             buffer_moving=50,

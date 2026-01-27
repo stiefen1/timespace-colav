@@ -50,7 +50,7 @@ planner = TimeSpaceColav(
     distance_threshold=1000,    # Minimal distance to include target ships in trajectory planning
     shore=shore_with_sd,        # All the static obstacles with safety margin
     max_speed=5,
-    max_yaw_rate=1,
+    max_course_rate=1,
     max_iter=10,
     colregs=True
 )

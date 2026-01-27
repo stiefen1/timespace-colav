@@ -16,7 +16,7 @@ class COLAVEnv:
         distance_threshold: float = 3e3, # Distance at which colav is enabled
         shore: Optional[ List[Polygon] ] = None,
         max_speed: float = float('inf'),
-        max_yaw_rate: float = float('inf'),
+        max_course_rate: float = float('inf'),
         colregs: bool = False,
         good_seamanship: bool = False,
         path_planner: Optional[PathPlanner] = None,
@@ -46,7 +46,7 @@ class COLAVEnv:
             distance_threshold=distance_threshold,
             shore=[obs.buffer(self.buffer_static).simplify(self.simplify_static) for obs in shore],
             max_speed=max_speed,
-            max_yaw_rate=max_yaw_rate, 
+            max_course_rate=max_course_rate, 
             colregs=colregs,
             good_seamanship=good_seamanship,
             path_planner=path_planner,
@@ -73,17 +73,17 @@ class COLAVEnv:
         else:
             speed, heading = 0, self.own_ship.psi
 
-        # Limit yaw rate to feasible values
-        desired_yaw_rate = (heading - self.own_ship.psi) / dt
-        # take double of the planner max yaw rate to have some margin
-        yaw_rate = max(min(desired_yaw_rate, 2 * self.planner.max_yaw_rate), - 2 * self.planner.max_yaw_rate)
+        # Limit course rate to feasible values
+        desired_course_rate = (heading - self.own_ship.psi) / dt
+        # take double of the planner max course rate to have some margin
+        course_rate = max(min(desired_course_rate, 2 * self.planner.max_course_rate), - 2 * self.planner.max_course_rate)
         
         # Limit acceleration
         desired_acceleration = (speed - self.own_ship.u) / dt
         acc = max(min(desired_acceleration, 0.02), -0.02)
 
         # Integrate
-        self.own_ship = MovingShip.from_body(self.own_ship.position, self.own_ship.psi + yaw_rate * dt, self.own_ship.u + acc * dt, 0, self.own_ship.loa, self.own_ship.beam, degrees=self.own_ship.degrees, mmsi=self.own_ship.mmsi)
+        self.own_ship = MovingShip.from_body(self.own_ship.position, self.own_ship.psi + course_rate * dt, self.own_ship.u + acc * dt, 0, self.own_ship.loa, self.own_ship.beam, degrees=self.own_ship.degrees, mmsi=self.own_ship.mmsi)
 
         self.own_ship = self.own_ship.predict(dt)
         for i in range(len(self.obstacles)):
