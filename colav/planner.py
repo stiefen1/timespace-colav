@@ -349,7 +349,7 @@ class TimeSpaceColav:
         projected_obstacles = []
         for k in range(self.max_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
-            # self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
+            # Alternative method: self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
             self.projector.v_des = (1 / (1 + 5 * discount_power / self.max_iter)) * self.desired_speed
             logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f} (discount power = {discount_power})")
             discount_power += 1

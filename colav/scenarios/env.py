@@ -57,9 +57,9 @@ class COLAVEnv:
         )
 
     def step(self, dt: float) -> Tuple[Dict[str, Any], bool, Dict[str, Any]]:
-        progression = self.path.progression(*self.own_ship.position)
+        progression = self.path.progression(*self.own_ship.position)    # Own ship's progression along global path
         
-        # print("p0: ", p0, "pf: ", pf, "angle: ", 180*atan2(pf[0]-p0[0], pf[1]-p0[1])/pi)
+        # Compute collision-free trajectory
         traj, info = self.planner.get(
             self.own_ship.position,
             self.path.interpolate(progression + self.lookahead_distance),
