@@ -1,3 +1,21 @@
+"""
+Constraint filters for maritime path planning.
+
+Provides constraint implementations for enforcing speed limits, course rate
+limitations, and COLREGS compliance in visibility graph path planning.
+
+Key Classes
+-----------
+SpeedConstraint : Enforces maximum speed limits on path edges
+CourseRateConstraint : Limits course change rates for vessel maneuverability
+COLREGS : Maritime collision regulations compliance filter
+
+Notes
+-----
+Constraints are applied during visibility graph construction to ensure
+generated paths respect vessel capabilities and maritime regulations.
+"""
+
 from colav.path.filters import IEdgeFilter, INodeFilter
 from colav.timespace.plane import Plane
 from colav.obstacles.moving import MovingShip
@@ -10,6 +28,23 @@ import logging, numpy as np
 logger = logging.getLogger(__name__)
 
 class SpeedConstraint(IEdgeFilter):
+    """
+    Speed constraint filter for path planning edges.
+    
+    Ensures that path segments do not exceed maximum allowable speed
+    based on distance and time differences between waypoints.
+    
+    Parameters
+    ----------
+    speed : float
+        Maximum allowable speed in m/s.
+        
+    Examples
+    --------
+    >>> constraint = SpeedConstraint(speed=15.0)  # 15 m/s max
+    >>> valid, info = constraint.is_valid(p1, p2, plane)
+    """
+    
     def __init__(
         self,
         speed: float
@@ -29,6 +64,29 @@ class SpeedConstraint(IEdgeFilter):
         return edge_speed <= self.speed, info
     
 class CourseRateConstraint(IEdgeFilter):
+    """
+    Course rate constraint filter for path planning edges.
+    
+    Limits the rate of course change based on vessel maneuverability.
+    Only applies to edges connected to the starting waypoint.
+    
+    Parameters
+    ----------
+    course_rate : float
+        Maximum allowable course change rate in rad/s.
+        
+    Notes
+    -----
+    Requires vessel heading to be provided during path planning.
+    Constraint is only applied to the first edge from start position.
+    
+    Examples
+    --------
+    >>> from colav.utils.math import DEG2RAD
+    >>> constraint = CourseRateConstraint(DEG2RAD(5))  # 5 deg/s
+    >>> valid, info = constraint.is_valid(p1, p2, plane, heading=heading)
+    """
+    
     def __init__(
         self,
         course_rate: float # radians
@@ -62,6 +120,33 @@ class CourseRateConstraint(IEdgeFilter):
         return is_valid, info
 
 class COLREGS(INodeFilter):
+    """
+    COLREGS compliance filter for maritime path planning.
+    
+    Enforces International Regulations for Preventing Collisions at Sea
+    by filtering obstacle vertices based on encounter geometry and
+    required collision avoidance maneuvers.
+    
+    Parameters
+    ----------
+    good_seamanship : bool, default False
+        Enable good seamanship practices beyond basic COLREGS.
+        
+    Notes
+    -----
+    Determines appropriate turning direction (port/starboard) based on
+    encounter type and removes vertices that would require improper
+    collision avoidance maneuvers.
+    
+    Examples
+    --------
+    >>> colregs = COLREGS(good_seamanship=True)
+    >>> valid, info = colregs.is_valid(
+    ...     node, start_pos, obstacles_dict, centroid,
+    ...     heading=vessel_heading
+    ... )
+    """
+    
     def __init__(
         self,
         good_seamanship: bool = False

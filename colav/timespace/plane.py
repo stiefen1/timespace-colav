@@ -1,3 +1,21 @@
+"""
+Timespace coordinate plane for trajectory timing.
+
+Provides the Plane class for defining timespace relationships between
+spatial coordinates and time, enabling projection of moving obstacles
+into static representations for collision avoidance planning.
+
+Key Components
+--------------
+Plane : A class representing a 3D plane in timespace, which maps any spatial point
+        to a timestamp.
+
+Notes
+-----
+The plane establishes a linear relationship between position (x,y) and time,
+allowing computation of when moving obstacles will occupy specific locations.
+"""
+
 from typing import List, Tuple
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.axes import Axes
@@ -5,11 +23,62 @@ from mpl_toolkits.mplot3d import Axes3D
 import logging
 logger = logging.getLogger(__name__)
 
-"""
-Typical use case:
-
-"""
 class Plane:
+    """
+    Timespace coordinate plane for trajectory timing calculations.
+    
+    Defines a linear relationship between spatial coordinates (x, y) and time
+    based on start/end waypoints and their associated timestamps. Used for
+    projecting moving obstacles into timespace for collision avoidance.
+    
+    Parameters
+    ----------
+    p0 : tuple or list
+        Start waypoint coordinates (x, y) in meters.
+    pf : tuple or list
+        Target waypoint coordinates (x, y) in meters.
+    t0 : float
+        Start time in seconds.
+    tf : float
+        Target arrival time in seconds. Must be > t0.
+        
+    Attributes
+    ----------
+    p0, pf : tuple
+        Start and target waypoint coordinates.
+    t0, tf : float
+        Start and target timestamps.
+    bx, by, bt : float
+        Plane equation coefficients.
+        
+    Methods
+    -------
+    get_time(x, y)
+        Compute time at given coordinates
+    intersection(vertices, velocities)
+        Project moving obstacles onto plane
+    plot(**kwargs)
+        Visualize plane in 3D
+        
+    Examples
+    --------
+    Basic plane creation:
+    
+    >>> plane = Plane((0, 0), (100, 100), t0=0, tf=50)
+    >>> time_at_midpoint = plane.get_time(50, 50)
+    
+    Project moving obstacle:
+    
+    >>> vertices = [(10, 10), (20, 10), (20, 20), (10, 20)]
+    >>> velocities = [(2, 1), (2, 1), (2, 1), (2, 1)]  # Same velocity
+    >>> projected, times, valid = plane.intersection(vertices, velocities)
+    
+    Notes
+    -----
+    The plane equation is: t = bx*x + by*y + bt
+    where coefficients are computed from boundary conditions.
+    """
+    
     def __init__(
             self,
             p0: Tuple | List,
@@ -54,7 +123,26 @@ class Plane:
 
     def get_time(self, x: float | int | np.ndarray, y: float | int | np.ndarray) -> float | np.ndarray:
         """
-        Evaluate time at (x, y) according to the plane equation.
+        Compute time at given spatial coordinates.
+        
+        Evaluates the plane equation t = bx*x + by*y + bt
+        to determine timing at specified locations.
+        
+        Parameters
+        ----------
+        x, y : float, int, or ndarray
+            Spatial coordinates. Arrays must have matching shapes.
+            
+        Returns
+        -------
+        float or ndarray
+            Time value(s) at the specified coordinates.
+            
+        Examples
+        --------
+        >>> plane = Plane((0,0), (100,100), 0, 50)
+        >>> t = plane.get_time(50, 50)  # Time at midpoint
+        >>> times = plane.get_time([0, 50, 100], [0, 50, 100])
         """
         assert isinstance(x, float) or isinstance(x, int) or isinstance(x, np.ndarray), f"x must be a float, integer or a numpy array. Got type(x)={type(x)}"
         assert isinstance(y, float) or isinstance(y, int) or isinstance(y, np.ndarray), f"y must be a float, integer or a numpy array. Got type(x)={type(y)}"
