@@ -89,8 +89,6 @@ for j, obs in enumerate(shore):
 if traj is not None:
     traj.plot(ax=ax, c='red', label="trajectory")
 
-# ax.set_xlim((-150, 150))
-# ax.set_ylim((-150, 150))
 ax.set_xlabel("East [m]")
 ax.set_ylabel("North [m]")
 ax.set_title(f"Target ships, timespace footprints and static obstacles with margin")
