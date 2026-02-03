@@ -1,3 +1,21 @@
+"""
+Moving obstacle and vessel dynamics for maritime collision avoidance.
+
+Provides classes for representing dynamic obstacles including generic
+moving objects and specialized maritime vessels with realistic dynamics,
+uncertainty modeling, and collision avoidance capabilities.
+
+Key Classes
+-----------
+MovingObstacle : Generic moving obstacle with position and velocity
+MovingShip : Maritime vessel with ship dynamics and uncertainty modeling
+
+Notes
+-----
+Supports vessel prediction, uncertainty envelopes, geometric buffering,
+and visualization for realistic maritime collision avoidance scenarios.
+"""
+
 from dataclasses import dataclass
 from typing import List, Tuple, Optional, Literal
 from colav.obstacles.transform import get_shape_at_xypsi
@@ -14,8 +32,62 @@ from math import cos, sin
 from copy import deepcopy
 logger = logging.getLogger(__name__)
 
-# TODO: Implement Moving Ship with uncertainties
 class MovingObstacle:
+    """
+    Generic moving obstacle with position, velocity, and geometry.
+    
+    Represents a dynamic obstacle that moves with constant velocity
+    and has a defined geometric shape for collision detection.
+    
+    Parameters
+    ----------
+    position : tuple of float
+        Current position (x, y) in meters.
+    psi : float
+        Heading angle in radians (or degrees if degrees=True).
+    velocity : tuple of float
+        Velocity vector (vx, vy) in world frame in m/s.
+    geometry_at_psi_equal_0 : list of tuple
+        Shape coordinates when psi=0, as (x, y) tuples.
+    degrees : bool, default False
+        Whether angles are in degrees.
+    mmsi : int, optional
+        Maritime Mobile Service Identity number.
+        
+    Attributes
+    ----------
+    position : tuple
+        Current (x, y) coordinates.
+    velocity : tuple
+        World frame velocity (vx, vy).
+    u, v : float
+        Body frame velocities (surge, sway).
+    geometry : list
+        Current transformed shape coordinates.
+        
+    Methods
+    -------
+    predict(dt)
+        Predict future position after time dt
+    distance(x, y)
+        Distance from obstacle to point
+    plot/fill/scatter
+        Visualization methods
+    buffer(distance)
+        Create buffered (enlarged) obstacle
+        
+    Examples
+    --------
+    >>> obstacle = MovingObstacle(
+    ...     position=(100, 50),
+    ...     psi=45, 
+    ...     velocity=(5, 3),
+    ...     geometry_at_psi_equal_0=SHIP(20, 5),
+    ...     degrees=True
+    ... )
+    >>> future_pos = obstacle.predict(dt=10)
+    """
+    
     def __init__(
         self,
         position: Tuple[float, float],
@@ -141,7 +213,97 @@ class MovingObstacle:
     
 class MovingShip(MovingObstacle):
     """
+    Maritime vessel with realistic ship dynamics and uncertainty.
+    
+    Specialized moving obstacle representing a maritime vessel with
+    ship-specific geometry, dynamics, uncertainty modeling, and
+    collision avoidance features.
+    
+    Parameters
+    ----------
+    position : tuple of float
+        Ship position (x, y) in meters (East, North).
+    psi : float
+        Ship heading angle.
+    velocity : tuple of float
+        World frame velocity (vx, vy) in m/s.
+    loa : float
+        Length overall in meters.
+    beam : float
+        Ship beam (width) in meters.
+    degrees : bool, default False
+        Whether angles are in degrees.
+    mmsi : int, optional
+        Maritime Mobile Service Identity.
+    dchi : float, optional
+        course uncertainty (standard deviation).
+    du : float, optional
+        Speed uncertainty (standard deviation).
+        
+    Attributes
+    ----------
+    loa, beam : float
+        Ship dimensions.
+    dchi, du : float or None
+        Uncertainty parameters for course and speed.
+        
+    Methods
+    -------
+    from_body(position, psi, u, v, loa, beam, **kwargs)
+        Create ship using body frame velocities
+    from_csog(position, psi, cog, sog, loa, beam, **kwargs)
+        Create ship using course and speed over ground
+    resample_velocity()
+        Generate new velocity with uncertainty
+    get_robust_geometry()
+        Get uncertainty envelope geometry
+        
+    Examples
+    --------
+    Ship with body frame velocities:
+    
+    >>> ship = MovingShip.from_body(
+    ...     position=(0, 0),
+    ...     psi=45,           # 45° heading
+    ...     u=10,             # 10 m/s forward speed
+    ...     v=0,              # No sway
+    ...     loa=100, beam=15, # Ship dimensions
+    ...     degrees=True,
+    ...     mmsi=123456789,
+    ...     du=0.5,           # ±0.5 m/s speed uncertainty
+    ...     dchi=5            # ±5° heading uncertainty
+    ... )
+    
+    Ship with course/speed over ground:
+    
+    >>> ship = MovingShip.from_csog(
+    ...     position=(100, 50),
+    ...     psi=30,           # Ship heading
+    ...     cog=35,           # Course over ground
+    ...     sog=12,           # Speed over ground
+    ...     loa=80, beam=12,
+    ...     degrees=True
+    ... )
+    
+    Dynamic behavior:
+    
+    >>> future_ship = ship.predict(dt=60)  # Position after 1 minute
+    >>> uncertain_ship = ship.resample_velocity()  # With uncertainty
+    >>> buffered_ship = ship.buffer(distance=20)   # Safety buffer
+    
+    Notes
+    -----
+    - Supports uncertainty modeling for Monte Carlo simulations
+    - Provides robust geometry envelopes for worst-case analysis
+    - Includes ship-specific buffering and geometric operations
+    - Compatible with COLREGS encounter analysis
+    
+    See Also
+    --------
+    MovingObstacle : Base class for moving obstacles
+    SHIP : Ship geometry factory function
     """
+    
     def __init__(
         self,
         position: Tuple[float, float], # XY = East, North

@@ -1,5 +1,29 @@
 """
-Useful functions to translate/rotate geometries.
+Geometric transformations for obstacle shapes and coordinates.
+
+Provides functions for translating, rotating, and positioning geometric
+shapes in 2D space for obstacle representation and collision detection
+in maritime navigation scenarios.
+
+Key Functions
+-------------
+translate : Move shape by displacement vector
+rotate : Rotate shape around specified point
+get_shape_at_xypsi : Position and orient shape at given location
+
+Notes
+-----
+All functions work with shapes represented as lists of (x,y) coordinate
+tuples. Rotations follow maritime convention with positive angles
+representing clockwise rotation from north.
+
+Examples
+--------
+>>> from colav.obstacles import SHIP
+>>> ship_shape = SHIP(20, 5)
+>>> positioned_ship = get_shape_at_xypsi(
+...     x=100, y=50, psi=45, shape=ship_shape, degrees=True
+... )
 """
 
 from typing import List, Tuple
@@ -7,17 +31,88 @@ from colav.utils.math import rotation_matrix
 import numpy as np
 
 def translate(shape: List[ Tuple[float, float] ], dx: float = 0, dy: float = 0) -> List[ Tuple[float, float]]:
+    """
+    Translate shape by displacement vector.
+    
+    Parameters
+    ----------
+    shape : list of tuple
+        Shape coordinates as (x, y) tuples.
+    dx : float, default 0
+        Displacement in x direction (east).
+    dy : float, default 0
+        Displacement in y direction (north).
+        
+    Returns
+    -------
+    list of tuple
+        Translated shape coordinates.
+        
+    Examples
+    --------
+    >>> translated = translate(ship_shape, dx=100, dy=50)
+    """
     return (np.array(shape) + np.array([dx, dy])).tolist()
 
 def rotate(shape: List[ Tuple[float, float] ], angle: float, x: float = 0, y: float = 0, degrees: bool = False) -> List[ Tuple[float, float]]:
     """
-    Rotate shape of angle around (x, y) (clock-wise positive)
+    Rotate shape around specified point.
     
+    Parameters
+    ----------
+    shape : list of tuple
+        Shape coordinates as (x, y) tuples.
+    angle : float
+        Rotation angle. Positive values rotate clockwise.
+    x, y : float, default 0
+        Center of rotation coordinates.
+    degrees : bool, default False
+        Whether angle is in degrees (True) or radians (False).
+        
+    Returns
+    -------
+    list of tuple
+        Rotated shape coordinates.
+        
+    Examples
+    --------
+    >>> rotated = rotate(ship_shape, 45, degrees=True)
+    >>> rotated_around_point = rotate(shape, 30, x=100, y=50, degrees=True)
     """
     translated_shape = np.array(translate(shape, dx=-x, dy=-y))
     return translate((rotation_matrix(np.deg2rad(-angle) if degrees else -angle)[0:2, 0:2] @ translated_shape.T).T.tolist(), x, y)
 
 def get_shape_at_xypsi(x: float, y: float, psi: float, shape: List[ Tuple[float, float]], degrees: bool = False) -> List[ Tuple[float, float]]:
+    """
+    Position and orient shape at specified location and heading.
+    
+    Combines translation and rotation to place a shape at the given
+    position with the specified heading angle.
+    
+    Parameters
+    ----------
+    x, y : float
+        Target position coordinates in meters.
+    psi : float
+        Heading angle. Positive clockwise from north.
+    shape : list of tuple
+        Shape coordinates as (x, y) tuples.
+    degrees : bool, default False
+        Whether psi is in degrees (True) or radians (False).
+        
+    Returns
+    -------
+    list of tuple
+        Transformed shape coordinates at target position and heading.
+        
+    Examples
+    --------
+    >>> from colav.obstacles import SHIP
+    >>> ship_at_pos = get_shape_at_xypsi(
+    ...     x=100, y=50, psi=45, 
+    ...     shape=SHIP(20, 5), degrees=True
+    ... )
+    """
     return rotate(translate(shape, dx=x, dy=y), psi, x=x, y=y, degrees=degrees)
 
 if __name__ == "__main__":

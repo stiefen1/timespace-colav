@@ -20,9 +20,9 @@ from colav.path.pwl import PWLPath
 from colav.obstacles.moving import MovingShip
 from colav.planner import TimeSpaceColav
 from colav.path.planning import PathPlanner
+from colav.utils.math import DEG2RAD
 from shapely import Polygon
 from typing import List, Optional, Tuple, Dict, Any
-from math import pi
 
 MAX_COURSE_RATE_DEGS = 1      # Maximum course rate in deg/s
 MAX_ACC_MS2 = 0.02           # Maximum acceleration in m/s^2
@@ -270,7 +270,7 @@ class COLAVEnv:
         # Limit course rate to feasible values
         desired_course_rate = (heading - self.own_ship.psi) / dt
         # take double of the planner max course rate to have some margin
-        max_course_rate = MAX_COURSE_RATE_DEGS if self.own_ship.degrees else (pi/180) * MAX_COURSE_RATE_DEGS
+        max_course_rate = MAX_COURSE_RATE_DEGS if self.own_ship.degrees else DEG2RAD(MAX_COURSE_RATE_DEGS)
         course_rate = max(min(desired_course_rate, max_course_rate), -max_course_rate)
         
         # Limit acceleration
