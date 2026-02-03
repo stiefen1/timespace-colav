@@ -7,9 +7,8 @@ A Python library for maritime collision avoidance using timespace projection and
 - **Timespace projection** for moving obstacle collision avoidance
 - **COLREGS compliance** with International Regulations for Preventing Collisions at Sea
 - **Maritime vessel dynamics** with uncertainty modeling
-- **Visibility graph path planning** for optimal collision-free trajectories
+- **Visibility graph path planning** for collision-free trajectories
 - **Scenario simulation** with visualization and analysis tools
-- **Good seamanship** practices for Traffic Separation Schemes
 
 ## Installation
 
@@ -91,7 +90,7 @@ runner.run(xlim=(-100, 600), ylim=(-200, 600))
   </tr>
 </table>
 
-*Real-time collision avoidance with time-space projection, COLREGS compliance, and multi-ship encounters*
+Real-time collision avoidance with time-space projection, COLREGS compliance, and multi-ship encounters
 
 **Legend:**
 - **Blue ship** → Own ship (vessel under control)
