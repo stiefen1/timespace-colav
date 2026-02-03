@@ -1,5 +1,26 @@
 """
-Timespace collision avoidance library
+Timespace collision avoidance library for maritime navigation.
+
+Provides tools for maritime collision avoidance planning using time-space
+projection and visibility graphs. Supports COLREGS compliance, moving
+obstacle avoidance, and optimal path planning for autonomous vessels.
+
+Main Components
+---------------
+TimeSpaceColav : High-level collision avoidance planner
+MovingShip : Moving obstacle representation
+TimeSpaceProjector : Projects obstacles into time-space
+VGPathPlanner : Visibility graph path planning
+COLREGS : Maritime collision regulation filters
+
+Examples
+--------
+Basic collision avoidance:
+
+>>> import colav
+>>> planner = colav.TimeSpaceColav(desired_speed=10.0, colregs=True)
+>>> ship = colav.MovingShip((100, 0), 90, (5, 0), 8, 3, mmsi=123)
+>>> trajectory, info = planner.get((0, 0), (200, 100), [ship])
 """
 
 __version__ = "0.1.0"
@@ -19,11 +40,23 @@ _logger = _logging.getLogger(__name__)
 _logger.addHandler(_logging.NullHandler())
 
 def get_logger(name: str | None = None) -> _logging.Logger:
-	"""Return a namespaced logger within the colav hierarchy.
-
-	Example:
-		logger = colav.get_logger("planner")
-		logger.info("Planning started")
+	"""
+	Return a namespaced logger within the colav hierarchy.
+	
+	Parameters
+	----------
+	name : str, optional
+		Logger name suffix. If None, returns the base colav logger.
+		
+	Returns
+	-------
+	Logger
+		Configured logger instance for the colav package.
+		
+	Examples
+	--------
+	>>> logger = colav.get_logger("planner")
+	>>> logger.info("Planning started")
 	"""
 	base = __name__ if name is None else f"{__name__}.{name}"
 	return _logging.getLogger(base)
@@ -34,16 +67,34 @@ def configure_logging(
 	datefmt: str | None = "%H:%M:%S",
 	colored: bool = True,
 ) -> _logging.Handler:
-	"""Optionally configure console logging for the 'colav' package only.
-
-	- Leaves the root logger unchanged (keeps other libs quiet unless the app configures them)
-	- Adds a StreamHandler to the 'colav' logger
-	- Filters so only 'colav' (and children) appear on this handler
-	- Disables propagation to avoid duplicates
-	- If ``colored`` is True, applies level-based colors (blue=DEBUG, green=INFO,
-	  yellow=WARNING, red=ERROR/CRITICAL). On Windows, uses colorama when available.
-
-	Returns the handler so callers can remove or tweak it later.
+	"""
+	Configure console logging for the colav package.
+	
+	Sets up colored console output with filtering to show only colav
+	package messages. Leaves other loggers unchanged.
+	
+	Parameters
+	----------
+	level : int, default INFO
+		Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+	fmt : str, default includes timestamp and level
+		Log message format string.
+	datefmt : str, optional
+		Date format for timestamps. Defaults to "HH:MM:SS".
+	colored : bool, default True
+		Enable color-coded log levels in console output.
+		
+	Returns
+	-------
+	Handler
+		The created stream handler for potential removal or modification.
+		
+	Examples
+	--------
+	>>> import colav
+	>>> colav.configure_logging(level=colav.logging.DEBUG)
+	>>> logger = colav.get_logger("planner")
+	>>> logger.debug("Debug message")  # Now visible
 	"""
 	import sys as _sys
 
