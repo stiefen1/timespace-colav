@@ -143,6 +143,28 @@ planner = TimeSpaceColav(desired_speed=10.0, colregs=True)
 trajectory, info = planner.get(start, target, obstacles)
 ```
 
+## Integration with Guidance, Navigation & Control (GNC)
+
+> **Note:** Detailed integration methodologies and validation results are presented in a research paper currently under review.
+
+Unlike most collision avoidance algorithms that provide steering commands, TimeSpace-COLAV generates **complete collision-free trajectories** as piecewise-linear paths with timing information.
+
+**Integration Requirements:**
+- A trajectory tracking controller capable of maintaining low cross-track and speed errors
+- Ability to switch between reference trajectories during operation
+
+**Integration Process:**
+1. **Normal Operation:** Vessel follows the original global path at desired speed
+2. **Collision Avoidance:** Replace reference trajectory with TimeSpace-COLAV output
+3. **Dynamic Updates:** Periodically recompute collision-free trajectories as environment changes
+
+**Update Characteristics:**
+- **Update interval:** 1-10 minutes (depending on scenario complexity)
+- **Low computational overhead** achieved through explicit uncertainty modeling of target ships
+- **Seamless integration** with existing autopilot and guidance systems
+
+This approach enables robust collision avoidance while maintaining compatibility with standard maritime control architectures.
+
 ## Dependencies
 
 - NumPy (≥1.20.0) - Numerical computations
@@ -150,6 +172,8 @@ trajectory, info = planner.get(start, target, obstacles)
 - Matplotlib (≥3.5.0) - Visualization
 - Shapely (≥2.0.0) - Geometric operations
 - NetworkX (≥2.6.0) - Graph algorithms
+- ImageIO (≥2.0.0) - GIF generation for scenario visualization
+- tqdm (≥4.0.0) - Progress bars for simulation
 
 ## License
 
