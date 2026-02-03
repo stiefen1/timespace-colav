@@ -7,7 +7,7 @@ name = "timespace-colav"
 version = "0.1.0"
 description = "Timespace collision avoidance library"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Stephen Monnet", email = "stephen.monnet@outlook.com"}
 ]
@@ -21,6 +21,11 @@ dependencies = [
     "imageio>=2.0.0",
     "tqdm>=4.0.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["colav*"]
+exclude = ["gifs*", "misc*", "results*", "build*", "*.egg-info*"]
 
 [project.optional-dependencies]
 dev = [
