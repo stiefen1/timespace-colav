@@ -15,19 +15,19 @@ This example creates a realistic encounter scenario with:
 Run this script to see the collision avoidance framework in action!
 """
 
-import logging
-
-import colav
+import logging, colav, os, pathlib
 from colav.scenarios import COLAVEnv, ScenarioRunner
 from colav.obstacles import MovingShip
 from colav.path.pwl import PWLPath
 from shapely import Polygon, Point
 
+OUTPUT_FOLDER = os.path.join(pathlib.Path(__file__).parent.parent.parent, 'results')
+
 def create_crossing_scenario():
     """Create a crossing encounter scenario with COLREGS compliance."""
     
     # Configure logging to see what's happening
-    colav.configure_logging(level=logging.INFO)
+    colav.configure_logging(level=logging.ERROR)
     
     # Define own ship starting from southwest, heading northeast
     own_ship = MovingShip.from_body(
@@ -142,6 +142,7 @@ def run_scenario_demo():
         xlim=(-600, 600),              # X-axis range (m)
         ylim=(-600, 600),              # Y-axis range (m)
         output_file='collision_avoidance_demo.gif',
+        output_folder=OUTPUT_FOLDER,
         track_own_ship=False           # Fixed view
     )
     
@@ -161,6 +162,7 @@ def run_ship_tracking_demo():
         xlim=(-200, 200),              # ±200m from own ship
         ylim=(-200, 200),
         output_file='ship_tracking_view.gif',
+        output_folder=OUTPUT_FOLDER,
         track_own_ship=True            # Camera follows own ship
     )
     

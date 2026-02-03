@@ -19,7 +19,7 @@ Uses iterative speed reduction to find feasible collision-free paths.
 """
 
 from typing import List, Tuple, Optional, Dict
-from colav.obstacles import MovingObstacle, MovingShip
+from colav.obstacles import MovingShip
 from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
@@ -27,7 +27,7 @@ from colav.path.planning import VGPathPlanner
 from colav.timespace.constraints import SpeedConstraint, CourseRateConstraint, COLREGS
 import shapely, logging
 from colav.utils.math import DEG2RAD, RAD2DEG, ssa
-from math import atan2, cos, sin
+from math import atan2
 logger = logging.getLogger(__name__)
 
 class TimeSpaceColav:

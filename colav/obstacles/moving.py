@@ -16,11 +16,10 @@ Supports vessel prediction, uncertainty envelopes, geometric buffering,
 and visualization for realistic maritime collision avoidance scenarios.
 """
 
-from dataclasses import dataclass
 from typing import List, Tuple, Optional, Literal
 from colav.obstacles.transform import get_shape_at_xypsi
 from colav.obstacles.shapes import SHIP
-from colav.utils.math import rotation_matrix, DEG2RAD, RAD2DEG
+from colav.utils.math import rotation_matrix
 from colav.utils import generate_random_mmsi
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
@@ -28,7 +27,6 @@ import matplotlib.pyplot as plt, numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import shapely, logging
 from shapely.affinity import rotate
-from math import cos, sin
 from copy import deepcopy
 logger = logging.getLogger(__name__)
 

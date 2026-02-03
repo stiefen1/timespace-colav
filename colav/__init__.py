@@ -1,7 +1,7 @@
 """
 Timespace collision avoidance library for maritime navigation.
 
-Provides tools for maritime collision avoidance planning using time-space
+Provides tools for maritime collision avoidance planning using timespace
 projection and visibility graphs. Supports COLREGS compliance, moving
 obstacle avoidance, and optimal path planning for autonomous vessels.
 
@@ -9,7 +9,7 @@ Main Components
 ---------------
 TimeSpaceColav : High-level collision avoidance planner
 MovingShip : Moving obstacle representation
-TimeSpaceProjector : Projects obstacles into time-space
+TimeSpaceProjector : Projects obstacles into timespace
 VGPathPlanner : Visibility graph path planning
 COLREGS : Maritime collision regulation filters
 

@@ -21,7 +21,7 @@ from colav.obstacles.moving import MovingShip, MovingObstacle
 import tqdm, numpy as np, matplotlib.pyplot as plt, logging, imageio
 from typing import List, Tuple
 from shapely import Polygon, Point
-import matplotlib
+import matplotlib, os
 matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ class ScenarioRunner:
         self.tf = tf
         self.dt = dt
 
-    def run(self, xlim: Tuple[float, float], ylim: Tuple[float, float], output_file: str = 'simulation.gif', track_own_ship: bool = False) -> None:
+    def run(self, xlim: Tuple[float, float], ylim: Tuple[float, float], output_folder: str = '', output_file: str = 'simulation.gif', track_own_ship: bool = False) -> None:
         """
         Execute complete scenario with visualization and analysis.
         
@@ -271,8 +271,8 @@ class ScenarioRunner:
             frame = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8).reshape((height, width, 4))[:, :, 1:]
             frames.append(frame)
 
-        logger.info(f"Scenario done. Saving {output_file} ..")
-        imageio.mimsave(output_file, frames, fps=10)
+        logger.info(f"Scenario done. Saving {output_file} in {output_folder} ..")
+        imageio.mimsave(os.path.join(output_folder, output_file), frames, fps=10)
         plt.close(fig)
 
         # Create distance plot
@@ -287,7 +287,7 @@ class ScenarioRunner:
             ax2.legend()
             ax2.set_title('Distance to Obstacles Over Time')
             ax2.set_ylim((0, ax2.get_ylim()[1]))
-            fig2.savefig('distance_plot.png')
+            fig2.savefig(os.path.join(output_folder, 'distance_plot.png'))
             plt.close(fig2)
             logger.info("Saved distance_plot.png")
 
@@ -310,7 +310,7 @@ class ScenarioRunner:
                 ax4.set_ylim((-self.env.planner.max_course_rate - 1, self.env.planner.max_course_rate + 1))
             ax4.legend()
             fig3.tight_layout()
-            fig3.savefig('speed_course_plot.png')
+            fig3.savefig(os.path.join(output_folder, 'speed_course_plot.png'))
             plt.close(fig3)
             logger.info("Saved speed_course_plot.png")
 
@@ -333,7 +333,7 @@ if __name__ == "__main__":
                 Point(200, 0).buffer(100)
             ],
             max_speed=3,
-            max_course_rate=0.5,
+            max_course_rate=0.5, # More restrictive than actual performance of own ship
             colregs=True,
             degrees=True,
             buffer_moving=50,
