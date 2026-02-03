@@ -91,7 +91,16 @@ runner.run(xlim=(-100, 600), ylim=(-200, 600))
   </tr>
 </table>
 
-*Real-time collision avoidance with timespace projection, COLREGS compliance, and multi-ship encounters*
+*Real-time collision avoidance with time-space projection, COLREGS compliance, and multi-ship encounters*
+
+**Legend:**
+- **Blue ship** → Own ship (vessel under control)
+- **Red ships** → Target ships (obstacles to avoid)
+- **Black polygons** → Static obstacles (shore, restricted areas)
+- **Green polygons** → Timespace footprints of moving ships
+- **Thick blue line** → Own ship's past trajectory
+- **Thin blue line** → Collision-free trajectory (algorithm output)
+- **Dashed blue line** → Global reference path to follow
 
 ## Getting Started
 
