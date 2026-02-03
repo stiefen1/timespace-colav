@@ -13,11 +13,6 @@ A Python library for maritime collision avoidance using timespace projection and
 
 ## Installation
 
-### From PyPI (when available)
-```bash
-pip install timespace-colav
-```
-
 ### From Source
 ```bash
 git clone https://github.com/yourusername/timespace-colav.git
