@@ -1,3 +1,20 @@
+"""
+Scenario execution and visualization framework.
+
+Provides comprehensive scenario runner for executing collision avoidance
+simulations over time with real-time visualization, data collection,
+and analysis output for maritime navigation scenarios.
+
+Key Components
+--------------
+ScenarioRunner : Complete scenario execution and visualization engine
+
+Notes
+-----
+Generates animated visualizations, distance plots, and performance metrics
+for comprehensive analysis of collision avoidance behavior and compliance.
+"""
+
 from colav.scenarios.env import COLAVEnv
 from colav.path.pwl import PWLPath, PWLTrajectory
 from colav.obstacles.moving import MovingShip, MovingObstacle
@@ -9,6 +26,89 @@ matplotlib.use('Agg')
 logger = logging.getLogger(__name__)
 
 class ScenarioRunner:
+    """
+    Scenario execution and visualization engine.
+    
+    Runs collision avoidance scenarios over time with comprehensive
+    visualization including animated plots, distance tracking, speed
+    profiles, and course rate analysis for maritime navigation testing.
+    
+    Parameters
+    ----------
+    env : COLAVEnv
+        Configured simulation environment with vessels and obstacles.
+    tf : float
+        Final simulation time in seconds.
+    dt : float, default 1
+        Time step size in seconds for simulation updates.
+        
+    Attributes
+    ----------
+    env : COLAVEnv
+        The simulation environment being executed.
+    tf : float
+        Total simulation duration.
+    dt : float
+        Simulation time step.
+        
+    Methods
+    -------
+    run(xlim, ylim, **kwargs)
+        Execute complete scenario with visualization
+        
+    Examples
+    --------
+    Basic scenario execution:
+    
+    >>> runner = ScenarioRunner(env, tf=300, dt=5)
+    >>> runner.run(
+    ...     xlim=(-100, 200),
+    ...     ylim=(-100, 200),
+    ...     output_file='scenario.gif'
+    ... )
+    
+    Tracking own ship view:
+    
+    >>> runner.run(
+    ...     xlim=(-50, 50),    # Relative to own ship
+    ...     ylim=(-50, 50),
+    ...     track_own_ship=True
+    ... )
+    
+    Notes
+    -----
+    Visualization features:
+    - Animated GIF showing vessel movements and trajectories
+    - Real-time collision avoidance trajectory display
+    - Distance-to-obstacles tracking plots
+    - Speed and course rate performance analysis
+    - Static obstacle and shore boundary display
+    
+    Output files generated:
+    - simulation.gif: Animated scenario visualization
+    - distance_plot.png: Distance vs time for all obstacles
+    - speed_course_plot.png: Speed and course rate profiles
+    
+    Performance metrics tracked:
+    - Minimum distances to all obstacles
+    - Speed profile vs limits
+    - Course rate usage vs constraints
+    - Path following accuracy
+    - Collision avoidance success
+    
+    Designed for:
+    - Algorithm validation and testing
+    - Regulatory compliance verification
+    - Performance benchmarking
+    - Educational demonstration
+    - Research scenario analysis
+    
+    See Also
+    --------
+    COLAVEnv : Simulation environment configuration
+    TimeSpaceColav : Underlying collision avoidance algorithm
+    """
+    
     def __init__(
         self,
         env: COLAVEnv,
@@ -20,6 +120,75 @@ class ScenarioRunner:
         self.dt = dt
 
     def run(self, xlim: Tuple[float, float], ylim: Tuple[float, float], output_file: str = 'simulation.gif', track_own_ship: bool = False) -> None:
+        """
+        Execute complete scenario with visualization and analysis.
+        
+        Runs the simulation from start to finish, generating animated
+        visualization and comprehensive performance analysis including
+        distance tracking, speed profiles, and safety metrics.
+        
+        Parameters
+        ----------
+        xlim : tuple of float
+            X-axis limits for visualization (x_min, x_max) in meters.
+            If track_own_ship=True, these are relative to own ship.
+        ylim : tuple of float
+            Y-axis limits for visualization (y_min, y_max) in meters.
+            If track_own_ship=True, these are relative to own ship.
+        output_file : str, default 'simulation.gif'
+            Filename for animated GIF output.
+        track_own_ship : bool, default False
+            Whether to center view on own ship (moving camera) or
+            use fixed coordinate system.
+            
+        Notes
+        -----
+        Execution process:
+        1. Initialize visualization and data collection
+        2. Run simulation loop with time steps
+        3. Collect trajectory, distance, and performance data
+        4. Generate animated visualization frames
+        5. Create analysis plots and save outputs
+        
+        Generated outputs:
+        - {output_file}: Animated GIF of scenario
+        - distance_plot.png: Distance vs time analysis
+        - speed_course_plot.png: Performance metrics
+        
+        Visualization elements:
+        - Own ship (blue) with trajectory history
+        - Target ships (red) with trajectory histories
+        - Planned collision avoidance trajectories
+        - Reference path (dashed blue line)
+        - Static obstacles and shore (grey)
+        - Real-time distance and speed information
+        
+        Analysis metrics:
+        - Minimum separation distances maintained
+        - Speed profile vs operational limits
+        - Course rate usage vs maneuverability constraints
+        - Collision avoidance activation frequency
+        - Path following accuracy
+        
+        Examples
+        --------
+        Fixed view scenario:
+        
+        >>> runner.run(
+        ...     xlim=(-500, 1500),
+        ...     ylim=(-500, 1500),
+        ...     output_file='crossing_encounter.gif'
+        ... )
+        
+        Own ship tracking view:
+        
+        >>> runner.run(
+        ...     xlim=(-200, 200),  # ±200m from own ship
+        ...     ylim=(-200, 200),
+        ...     track_own_ship=True,
+        ...     output_file='ship_view.gif'
+        ... )
+        """
         plt.ioff()
         fig, ax = plt.subplots()
         frames = []
