@@ -25,7 +25,7 @@ from shapely import Polygon
 from typing import List, Optional, Tuple, Dict, Any
 
 MAX_COURSE_RATE_DEGS = 1      # Maximum course rate in deg/s
-MAX_ACC_MS2 = 0.02           # Maximum acceleration in m/s^2
+MAX_ACC_MS2 = 0.05           # Maximum acceleration in m/s^2
 
 
 class COLAVEnv:
