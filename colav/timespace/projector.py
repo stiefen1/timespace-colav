@@ -17,7 +17,7 @@ future positions with a timespace plane.
 """
 
 from colav.timespace.plane import Plane
-from colav.obstacles.moving import MovingObstacle
+from colav.obstacles.moving import MovingObstacle, MovingShip
 from colav.path.pwl import PWLTrajectory, PWLPath
 from typing import List, Tuple, Optional
 from shapely import Polygon
