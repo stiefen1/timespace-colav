@@ -52,9 +52,9 @@ def generate_realistic_mmsi():
     country_code = random.choice(country_codes)
     
     # Generate remaining 6 digits
-    remaining_digits = random.randint(100000, 999999)
+    remaining_digits = random.randint(100_000, 999_999)
     
-    return country_code * 1000000 + remaining_digits
+    return country_code * 1_000_000 + remaining_digits
 
 def generate_mmsi_formatted():
     """
@@ -74,7 +74,7 @@ def generate_mmsi_formatted():
     >>> print(len(str(mmsi)))  # Always 9
     """
     # Generate 9-digit number as string to ensure leading zeros if needed
-    return int(f"{random.randint(1, 9)}{random.randint(10000000, 99999999)}")
+    return int(f"{random.randint(1, 9)}{random.randint(10_000_000, 99_999_999)}")
 
 
 def is_valid_mmsi(number: int) -> bool:
@@ -87,7 +87,7 @@ def is_valid_mmsi(number: int) -> bool:
     Returns:
         bool: True if the number is a valid MMSI, False otherwise.
     """
-    return 100000000 <= number <= 999999999
+    return 100_000_000 <= number <= 999_999_999
 
 
 if __name__ == "__main__":

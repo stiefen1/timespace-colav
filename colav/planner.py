@@ -25,6 +25,7 @@ from colav.path.planning import PathPlanner
 from colav.path.pwl import PWLPath, PWLTrajectory
 from colav.path.planning import VGPathPlanner
 from colav.timespace.constraints import SpeedConstraint, CourseRateConstraint, COLREGS
+from colav.utils.mmsi import is_valid_mmsi
 import shapely, logging
 from colav.utils.math import DEG2RAD, RAD2DEG, ssa
 from math import atan2
@@ -341,6 +342,7 @@ class TimeSpaceColav:
 
         buffered_obstacles: List[MovingShip] = []
         for obs in obstacles:
+            assert is_valid_mmsi(abs(obs.mmsi)), f"Invalid mmsi={obs.mmsi} provided. It must satisfy 100'000'000 <= mmsi <= 999'999'999" # Make sure mmsi is different from any index of the shore when constructing the graph
             if obs.distance(*p0) <= self.distance_threshold:
                 buffered_obstacles.append(obs.buffer(margin, **kwargs) if margin > 0 else obs)
 

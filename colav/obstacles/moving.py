@@ -20,7 +20,7 @@ from typing import List, Tuple, Optional, Literal
 from colav.obstacles.transform import get_shape_at_xypsi
 from colav.obstacles.shapes import SHIP
 from colav.utils.math import rotation_matrix
-from colav.utils import generate_random_mmsi
+from colav.utils import generate_random_mmsi, is_valid_mmsi
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt, numpy as np
@@ -50,7 +50,7 @@ class MovingObstacle:
     degrees : bool, default False
         Whether angles are in degrees.
     mmsi : int, optional
-        Maritime Mobile Service Identity number.
+        Maritime Mobile Service Identity number. Must satisfy 100'000'000 <= mmsi <= 999'999'999
         
     Attributes
     ----------
@@ -101,6 +101,7 @@ class MovingObstacle:
         self.geometry_at_psi_equal_0 = geometry_at_psi_equal_0
         self.degrees = degrees
         self.mmsi: int = mmsi or -generate_random_mmsi() # Negative mmsi to highlight fake ships
+        assert is_valid_mmsi(abs(self.mmsi)), f"Invalid mmsi={self.mmsi} provided. It must satisfy 100'000'000 <= mmsi <= 999'999'999"
         
         self.reset_geometry()
         
