@@ -24,6 +24,7 @@ import networkx as nx
 from typing import List, Tuple, Optional, Dict
 from colav.path.filters import IEdgeFilter, INodeFilter
 from shapely import Polygon, Point, LineString, MultiPoint 
+from colav.utils.mmsi import is_valid_mmsi
 import matplotlib.pyplot as plt, logging
 logger = logging.getLogger(__name__)
 
@@ -308,6 +309,8 @@ class VisibilityGraph(nx.DiGraph):
 
                 if all_valid:
                     self.add_node(node_idx, pos=(x, y), id=obstacle_id, **info)
+                    if is_valid_mmsi(abs(node['id'])):
+                        logger.debug(f"Adding node from a target ship: {list(zip(node.keys(), node.values()))}")
                     node_idx += 1
         
         # Add end node
@@ -373,13 +376,18 @@ class VisibilityGraph(nx.DiGraph):
                     # Add edge if it passes filters and is collision-free
                     if valid:
                         self.add_edge(node_1, node_2, weight=edge_line.length)
+                        if is_valid_mmsi(abs(self.nodes[node_1]["id"])):
+                            logger.debug(f"Adding edge linked to a target ship: {list(zip(self.nodes[node_1].keys(), self.nodes[node_1].values()))}")
 
-        logger.debug(f"Graph was successfully populated.")
+        logger.debug(f"Graph was successfully populated with {len(self.edges)} edges and {len(self.nodes)} nodes.")
     
 if __name__ == "__main__":
     # Example usage: path planning around two ship obstacles
     from colav.obstacles import MovingShip
     from colav.path.planning import VGPathPlanner
+    from colav.utils.mmsi import generate_realistic_mmsi
+    import colav, logging
+    colav.configure_logging(logging.DEBUG)
     
     # Create two ship obstacles
     ship1 = MovingShip((0, 0), 30, (4, 3), 10, 3, degrees=True, mmsi=111)
@@ -393,7 +401,7 @@ if __name__ == "__main__":
     planner = VGPathPlanner(
         p_0=(-5, -5),          # Start point
         p_f=(15, 15),          # End point  
-        obstacles={111: obs1, 222: obs2},
+        obstacles={generate_realistic_mmsi(): obs1, generate_realistic_mmsi(): obs2},
         edge_filters=[],
         max_angle=-30
     )

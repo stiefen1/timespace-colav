@@ -28,7 +28,7 @@ def generate_random_mmsi():
     >>> mmsi = generate_random_mmsi()
     >>> print(mmsi)  # e.g., 456789123
     """
-    return random.randint(100000000, 999999999)
+    return random.randint(100_000_000, 999_999_999)
 
 def generate_realistic_mmsi():
     """
