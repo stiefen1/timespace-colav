@@ -133,7 +133,7 @@ def run_scenario_demo():
     
     print("Running simulation with visualization...")
     print("This will generate:")
-    print("- simulation.gif: Animated scenario")
+    print("- collision_avoidance_demo.gif: Animated scenario")
     print("- distance_plot.png: Safety distance analysis")  
     print("- speed_course_plot.png: Performance metrics")
     

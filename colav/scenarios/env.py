@@ -250,20 +250,18 @@ class COLAVEnv:
         ...     print(f"Speed: {obs['trajectory'].get_speed(0):.1f} m/s")
         >>> if done:
         ...     print("Reached destination!")
-        """
-        progression = self.path.progression(*self.own_ship.position)    # Own ship's progression along global path
-        
+        """        
         # Compute collision-free trajectory
         traj, info = self.planner.get(
             self.own_ship.position,
-            self.path.interpolate(progression + self.lookahead_distance),
+            self.path.get_lookahead_position(*self.own_ship.position, self.lookahead_distance),
             [obs.buffer(self.buffer_moving) for obs in self.obstacles],
             heading=self.own_ship.psi,
             degrees=self.own_ship.degrees
         )
 
         if traj is not None:
-            speed, heading = traj.get_speed(traj._linestring.coords[-1][2]), traj.get_heading(traj._linestring.coords[-1][2], degrees=self.own_ship.degrees)
+            speed, heading = traj.get_speed(0), traj.get_heading(0, degrees=self.own_ship.degrees)
         else:
             speed, heading = 0, self.own_ship.psi
 

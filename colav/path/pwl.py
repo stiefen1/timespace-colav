@@ -135,6 +135,43 @@ class PWLPath:
         prog = self._linestring.project(Point(x, y))
         return prog / self._linestring.length if normalized else prog
     
+    def get_lookahead_position(self, x: float, y: float, lookahead_distance: float) -> Tuple[float, float]:
+        """
+        Get position ahead of current location by specified distance along path.
+        
+        Calculates a target position for path following algorithms by projecting
+        the current position onto the path and moving forward by the lookahead
+        distance. Essential for pure pursuit and similar guidance algorithms.
+        
+        Parameters
+        ----------
+        x, y : float
+            Current position coordinates in meters.
+        lookahead_distance : float
+            Distance to look ahead along path in meters.
+            
+        Returns
+        -------
+        tuple of float
+            Lookahead position (x, y) in meters.
+            
+        Examples
+        --------
+        Find target point for vessel guidance:
+        
+        >>> path = PWLPath([(0, 0), (100, 0), (100, 50)])
+        >>> current_pos = (30, 5)
+        >>> target = path.get_lookahead_position(*current_pos, 20)
+        >>> print(f"Target position: ({target[0]:.1f}, {target[1]:.1f})")
+        
+        Notes
+        -----
+        If the lookahead distance extends beyond the path end, returns the
+        final waypoint position. Commonly used in autopilot systems for
+        smooth path following behavior.
+        """
+        return self.interpolate(self.progression(x, y) + lookahead_distance)
+    
     def plot(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
         """
         Plot path as connected line segments.
