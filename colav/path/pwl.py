@@ -216,10 +216,10 @@ class PWLTrajectory(PWLPath):
         Get 2D position at specified time (makes trajectory callable)
     interpolate(distance, normalized=False)
         Get (x, y, time) at specified distance along trajectory
-    get_heading(distance, normalized=False, degrees=False)
-        Calculate heading/bearing at given distance
-    get_speed(distance, normalized=False)
-        Calculate instantaneous speed at given distance
+    get_heading(time, degrees=False)
+        Calculate heading/bearing at given time
+    get_speed(time)
+        Calculate instantaneous speed at given time
     get_edge_speed(p1, p2)
         Calculate speed between two trajectory points
     compute_cpa(other, dt=1.0)
@@ -244,12 +244,12 @@ class PWLTrajectory(PWLPath):
     
     Analyze vessel motion characteristics:
     
-    >>> # Heading at halfway point along path
-    >>> heading = traj.get_heading(0.5, normalized=True, degrees=True)
+    >>> # Heading at t=60 seconds
+    >>> heading = traj.get_heading(60, degrees=True)
     >>> print(f"Heading: {heading:.1f}°")
     >>> 
-    >>> # Speed at 30% along trajectory
-    >>> speed = traj.get_speed(0.3, normalized=True)
+    >>> # Speed at t=30 seconds
+    >>> speed = traj.get_speed(30)
     >>> print(f"Speed: {speed:.2f} m/s")
     
     Use for collision detection:
@@ -338,19 +338,17 @@ class PWLTrajectory(PWLPath):
         point = self._linestring.interpolate(distance, normalized=normalized)
         return point.x, point.y, point.z
     
-    def get_heading(self, distance: float, normalized: bool = False, degrees: bool = False) -> float:
+    def get_heading(self, time: float, degrees: bool = False) -> float:
         """
-        Calculate heading (bearing) at specified distance along trajectory.
+        Calculate heading (bearing) at specified time along trajectory.
         
         Uses finite differences for numerical stability at waypoints.
         Essential for vessel control and collision avoidance.
         
         Parameters
         ----------
-        distance : float
-            Distance along trajectory.
-        normalized : bool, default False
-            If True, distance is fraction [0,1]. If False, distance in meters.
+        time : float
+            Time in seconds to calculate heading.
         degrees : bool, default False
             If True, return in degrees. If False, return in radians.
             
@@ -359,54 +357,73 @@ class PWLTrajectory(PWLPath):
         float
             Heading angle. North=0°, East=90° (nautical convention).
         """
-        length = 1 if normalized else self._linestring.length
-        assert 0 <= distance <= length, f"distance must be within [0, {length:.1f}]. Got distance={distance:.2f}"
+        coords = list(self._linestring.coords)
+        t_start, t_end = coords[0][2], coords[-1][2]
         
-        if distance == 0:
-            prog_prev = 0
-            prog_next = 0.005 * length
+        assert t_start <= time <= t_end, f"time must be within [{t_start:.1f}, {t_end:.1f}]. Got time={time:.2f}"
+        
+        # Use small time offset for finite difference
+        dt = 0.1  # 0.1 second offset
+        
+        if time == t_start:
+            t_prev = time
+            t_next = min(time + dt, t_end)
+        elif time == t_end:
+            t_prev = max(time - dt, t_start)
+            t_next = time
         else:
-            prog_prev = 0.995 * distance
-            prog_next = distance
+            t_prev = max(time - dt/2, t_start)
+            t_next = min(time + dt/2, t_end)
 
-        p1 = np.array(self._linestring.interpolate(prog_prev, normalized=normalized).xy).squeeze()
-        p2 = np.array(self._linestring.interpolate(prog_next, normalized=normalized).xy).squeeze()
+        p1 = np.array(self(t_prev))
+        p2 = np.array(self(t_next))
 
         heading_rad = np.atan2(p2[0]-p1[0], p2[1]-p1[1])
         return np.rad2deg(heading_rad) if degrees else heading_rad
     
-    def get_speed(self, distance: float, normalized: bool = False) -> float:
+    def get_speed(self, time: float) -> float:
         """
-        Calculate instantaneous speed at specified distance along trajectory.
+        Calculate instantaneous speed at specified time along trajectory.
         
         Uses finite differences between nearby trajectory points.
         Critical for speed constraint validation.
         
         Parameters
         ----------
-        distance : float
-            Distance along trajectory.
-        normalized : bool, default False
-            If True, distance is fraction [0,1]. If False, distance in meters.
+        time : float
+            Time in seconds to calculate speed.
             
         Returns
         -------
         float
             Speed in meters per second.
         """
-        length = 1 if normalized else self._linestring.length
-        assert 0 <= distance <= length, f"distance must be within [0, {length:.1f}]. Got distance={distance:.2f}"
+        coords = list(self._linestring.coords)
+        t_start, t_end = coords[0][2], coords[-1][2]
         
-        if distance == 0:
-            prog_prev = 0
-            prog_next = 0.005 * length
+        assert t_start <= time <= t_end, f"time must be within [{t_start:.1f}, {t_end:.1f}]. Got time={time:.2f}"
+        
+        # Use small time offset for finite difference
+        dt = 0.1  # 0.1 second offset
+        
+        if time == t_start:
+            t_prev = time
+            t_next = min(time + dt, t_end)
+        elif time == t_end:
+            t_prev = max(time - dt, t_start)
+            t_next = time
         else:
-            prog_prev = 0.995 * distance
-            prog_next = distance
+            t_prev = max(time - dt/2, t_start)
+            t_next = min(time + dt/2, t_end)
 
-        p1 = self._linestring.interpolate(prog_prev, normalized=normalized)
-        p2 = self._linestring.interpolate(prog_next, normalized=normalized)
-        return self.get_edge_speed((p1.x, p1.y, p1.z), (p2.x, p2.y, p2.z))
+        pos1 = self(t_prev)
+        pos2 = self(t_next)
+        
+        # Create 3D points with time for get_edge_speed
+        p1 = (pos1[0], pos1[1], t_prev)
+        p2 = (pos2[0], pos2[1], t_next)
+        
+        return self.get_edge_speed(p1, p2)
     
     def get_edge_speed(self, p1: Tuple[float, float, float], p2: Tuple[float, float, float]) -> float:
         """
