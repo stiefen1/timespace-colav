@@ -11,7 +11,8 @@ Key classes:
 from typing import List, Tuple, Optional
 from shapely import LineString, Point
 from matplotlib.axes import Axes
-import matplotlib.pyplot as plt, numpy as np
+import matplotlib.pyplot as plt, numpy as np, logging
+logger = logging.getLogger(__name__)
 
 class PWLPath:
     """
@@ -305,6 +306,13 @@ class PWLTrajectory(PWLPath):
         """
         coords = list(self._linestring.coords)
         
+        if t > coords[-1][2]:
+            logger.warning(f"Input time t={t} was replaced by trajectory's final time tf={coords[-1][2]} because t>tf")
+            t = coords[-1][2]
+        elif t < coords[0][2]:
+            logger.warning(f"Input time t={t} was replaced by trajectory's initial time t0={coords[-1][2]} because t<t0")
+            t = coords[0][2]
+        
         # Find segment and interpolate
         for i in range(len(coords) - 1):
             t1, t2 = coords[i][2], coords[i+1][2]
@@ -359,18 +367,16 @@ class PWLTrajectory(PWLPath):
         """
         coords = list(self._linestring.coords)
         t_start, t_end = coords[0][2], coords[-1][2]
-        
-        assert t_start <= time <= t_end, f"time must be within [{t_start:.1f}, {t_end:.1f}]. Got time={time:.2f}"
-        
+                
         # Use small time offset for finite difference
-        dt = 0.1  # 0.1 second offset
+        dt = 1e-3
         
-        if time == t_start:
-            t_prev = time
-            t_next = min(time + dt, t_end)
-        elif time == t_end:
-            t_prev = max(time - dt, t_start)
+        if time <= t_start:
+            t_prev = t_start
+            t_next = min(t_prev + dt, t_end)
+        elif time >= t_end:
             t_next = time
+            t_prev = max(t_next - dt, t_start)
         else:
             t_prev = max(time - dt/2, t_start)
             t_next = min(time + dt/2, t_end)
@@ -400,18 +406,16 @@ class PWLTrajectory(PWLPath):
         """
         coords = list(self._linestring.coords)
         t_start, t_end = coords[0][2], coords[-1][2]
-        
-        assert t_start <= time <= t_end, f"time must be within [{t_start:.1f}, {t_end:.1f}]. Got time={time:.2f}"
-        
+                
         # Use small time offset for finite difference
-        dt = 0.1  # 0.1 second offset
+        dt = 1e-3
         
-        if time == t_start:
+        if time <= t_start:
             t_prev = time
-            t_next = min(time + dt, t_end)
-        elif time == t_end:
-            t_prev = max(time - dt, t_start)
+            t_next = min(t_prev + dt, t_end)
+        elif time >= t_end:
             t_next = time
+            t_prev = max(t_next - dt, t_start)
         else:
             t_prev = max(time - dt/2, t_start)
             t_next = min(time + dt/2, t_end)
