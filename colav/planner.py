@@ -408,7 +408,7 @@ class TimeSpaceColav:
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
 
-                logger.info(f"speed and heading required for COLAV: {traj.get_speed(0):.1f} [m/s], {traj.get_heading(0, degrees=True):.1f} [deg]")
+                logger.info(f"speed and heading required for COLAV: {traj.get_speed(traj._linestring.coords[-1][2]):.1f} [m/s], {traj.get_heading(traj._linestring.coords[-1][2], degrees=True):.1f} [deg]")
 
                 return traj, {
                     'pf': pf,

@@ -263,7 +263,7 @@ class COLAVEnv:
         )
 
         if traj is not None:
-            speed, heading = traj.get_speed(0), traj.get_heading(0, degrees=self.own_ship.degrees)
+            speed, heading = traj.get_speed(traj._linestring.coords[-1][2]), traj.get_heading(traj._linestring.coords[-1][2], degrees=self.own_ship.degrees)
         else:
             speed, heading = 0, self.own_ship.psi
 
