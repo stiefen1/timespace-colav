@@ -385,20 +385,6 @@ class TimeSpaceColav:
                 else:
                     active_node_filters.append(node_filter)
 
-
-
-            p0_point = shapely.Point(p0)
-            pf_point = shapely.Point(pf)
-            for key in (projected_obstacles_as_dict).keys():
-                for i in range(10):
-                    pf_in_obs = projected_obstacles_as_dict[key].contains(pf_point)
-                    p0_in_obs = projected_obstacles_as_dict[key].contains(p0_point)
-                    if pf_in_obs or p0_in_obs:
-                        logger.warning(f"{pf if pf_in_obs else p0} is colliding with an obstacle, scaling down obstacle (iteration {i+1}/{10})")
-                        projected_obstacles_as_dict[key] = shapely.affinity.scale(projected_obstacles_as_dict[key], xfact=0.9, yfact=0.9, origin=shapely.Point(*moving_obstacles_as_dict[key].position))
-                    else:
-                        break
-
             # Create path planner
             self.path_planner = VGPathPlanner(
                 p0,
