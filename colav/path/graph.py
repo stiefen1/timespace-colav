@@ -23,7 +23,7 @@ Integrates with filter systems for constraint enforcement.
 import networkx as nx
 from typing import List, Tuple, Optional, Dict
 from colav.path.filters import IEdgeFilter, INodeFilter
-from shapely import Polygon, Point, LineString, MultiPoint 
+from shapely import Polygon, Point, LineString, MultiPoint, affinity
 from colav.utils.mmsi import is_valid_mmsi
 import matplotlib.pyplot as plt, logging
 logger = logging.getLogger(__name__)
@@ -203,6 +203,8 @@ class VisibilityGraph(nx.DiGraph):
         obstacles: Optional[Dict[int, Polygon]] = None,
         edge_filters: Optional[List[IEdgeFilter]] = None,
         node_filters: Optional[List[INodeFilter]] = None,
+        max_obs_reduction_iter: int = 10,
+        obs_reduction_factor: float = 0.6,
         **kwargs
     ):
         """
@@ -236,6 +238,9 @@ class VisibilityGraph(nx.DiGraph):
         self.obstacles = obstacles or {}
         self.edge_filters = edge_filters or []
         self.node_filters = node_filters or []
+        assert max_obs_reduction_iter > 0, f"Max number of iterations for adaptive envelope must be > 0. Got max_obs_reduction_iter={max_obs_reduction_iter} <= 0"
+        self.max_obs_reduction_iter = max_obs_reduction_iter
+        self.obs_reduction_factor = obs_reduction_factor
 
         # Initialize graph and populate with nodes and edges
         super().__init__()
@@ -268,17 +273,30 @@ class VisibilityGraph(nx.DiGraph):
         node_idx = 1
 
         # Ensure start and end points are not inside obstacles
-        obstacles_list = list(self.obstacles.values())
-        logger.debug(f"Received {len(obstacles_list)} obstacles, start populating nodes.")
+        logger.debug(f"Received {len(self.obstacles.values())} obstacles, start populating nodes.")
 
-        for obs in obstacles_list:
+        pf_point = Point(self.p_f)
+        p0_point = Point(self.p_0)
+
+        for key, obs in self.obstacles.items():
+            for i in range(self.max_obs_reduction_iter):
+                pf_in_obs = obs.contains(pf_point)
+                p0_in_obs = obs.contains(p0_point)
+                if pf_in_obs or p0_in_obs:
+                    logger.warning(f"{self.p_f if pf_in_obs else self.p_0} is colliding with an obstacle, scaling down obstacle (iteration {i+1}/{self.max_obs_reduction_iter})")
+                    obs = affinity.scale(obs, xfact=self.obs_reduction_factor, yfact=self.obs_reduction_factor)
+                else:
+                    break
+
+            self.obstacles[key] = obs
+
             if obs.contains(Point(self.p_f)):
                 self.p_f = relocate_colliding_point(
-                    self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance
+                    self.p_f, self.p_0, list(self.obstacles.values()), buffer_distance=relocation_buffer_distance
                 )
             if obs.contains(Point(self.p_0)):
                 self.p_0 = relocate_colliding_point(
-                    self.p_0, self.p_f, obstacles_list, buffer_distance=relocation_buffer_distance
+                    self.p_0, self.p_f, list(self.obstacles.values()), buffer_distance=relocation_buffer_distance
                 )
 
         # Add start node
@@ -390,8 +408,8 @@ if __name__ == "__main__":
     colav.configure_logging(logging.DEBUG)
     
     # Create two ship obstacles
-    ship1 = MovingShip((0, 0), 30, (4, 3), 10, 3, degrees=True, mmsi=111)
-    ship2 = MovingShip((10, 10), -120, (-2, -3), 5, 2, degrees=True, mmsi=222)
+    ship1 = MovingShip((0, 0), 30, (4, 3), 10, 3, degrees=True, mmsi=111111111).buffer(2)
+    ship2 = MovingShip((10, 10), -120, (-2, -3), 5, 2, degrees=True, mmsi=222222222).buffer(2)
     
     # Convert to static polygon obstacles
     obs1 = Polygon(ship1.geometry)
@@ -403,7 +421,7 @@ if __name__ == "__main__":
         p_f=(15, 15),          # End point  
         obstacles={generate_realistic_mmsi(): obs1, generate_realistic_mmsi(): obs2},
         edge_filters=[],
-        max_angle=-30
+        max_angle=-30,
     )
     
     # Create clean visualization
