@@ -235,8 +235,6 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
         obstacles: Optional[Dict[int, Polygon]] = None,
         edge_filters: Optional[List[IEdgeFilter]] = None,
         node_filters: Optional[List[INodeFilter]] = None,
-        max_obs_reduction_iter: int = 10,
-        obs_reduction_factor: float = 0.6,
         **kwargs
     ):
         IPathPlanner.__init__(self)
@@ -247,8 +245,6 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
             obstacles,
             edge_filters,
             node_filters,
-            max_obs_reduction_iter=max_obs_reduction_iter,
-            obs_reduction_factor=obs_reduction_factor,
             **kwargs
         )
 
