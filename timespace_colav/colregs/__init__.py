@@ -16,7 +16,7 @@ Examples
 --------
 Basic encounter analysis:
 
->>> from colav.colregs import get_encounter, get_recommendation_for_os
+>>> from timespace_colav.colregs import get_encounter, get_recommendation_for_os
 >>> encounter = get_encounter(own_ship, target_ship)
 >>> recommendation, info = get_recommendation_for_os(own_ship, target_ship)
 >>> print(f"Encounter: {encounter.name}, Recommendation: {recommendation.name}")

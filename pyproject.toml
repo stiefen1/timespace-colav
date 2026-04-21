@@ -24,7 +24,7 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["colav*"]
+include = ["timespace_colav*"]
 exclude = ["gifs*", "misc*", "results*", "build*", "*.egg-info*"]
 
 [project.optional-dependencies]

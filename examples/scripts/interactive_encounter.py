@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt, numpy as np
 from matplotlib.widgets import Slider
 from matplotlib.lines import Line2D
-from colav.obstacles.moving import MovingShip
-from colav.colregs.encounters import get_recommendation_for_os, Encounter
+from timespace_colav.obstacles.moving import MovingShip
+from timespace_colav.colregs.encounters import get_recommendation_for_os, Encounter
 
 class InteractiveEncounter:
     def __init__(self):
@@ -161,6 +161,6 @@ class InteractiveEncounter:
 
 
 if __name__ == "__main__":
-    import colav, logging
-    colav.configure_logging(logging.INFO)
+    import timespace_colav, logging
+    timespace_colav.configure_logging(logging.INFO)
     InteractiveEncounter().show()

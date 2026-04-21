@@ -16,11 +16,11 @@ with simplified maritime physics, multiple ship interactions, and regulatory
 compliance testing.
 """
 
-from colav.path.pwl import PWLPath
-from colav.obstacles.moving import MovingShip
-from colav.planner import TimeSpaceColav
-from colav.path.planning import PathPlanner
-from colav.utils.math import DEG2RAD
+from timespace_colav.path.pwl import PWLPath
+from timespace_colav.obstacles.moving import MovingShip
+from timespace_colav.planner import TimeSpaceColav
+from timespace_colav.path.planning import PathPlanner
+from timespace_colav.utils.math import DEG2RAD
 from shapely import Polygon
 from typing import List, Optional, Tuple, Dict, Any
 
@@ -99,8 +99,8 @@ class COLAVEnv:
     --------
     Basic encounter scenario:
     
-    >>> from colav.obstacles import MovingShip
-    >>> from colav.path.pwl import PWLPath
+    >>> from timespace_colav.obstacles import MovingShip
+    >>> from timespace_colav.path.pwl import PWLPath
     >>> from shapely import Polygon
     >>> 
     >>> own_ship = MovingShip.from_body((0, 0), 45, 5, 0, 20, 5)

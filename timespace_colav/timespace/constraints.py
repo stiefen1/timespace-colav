@@ -16,14 +16,14 @@ Constraints are applied during visibility graph construction to ensure
 generated paths respect vessel capabilities and maritime regulations.
 """
 
-from colav.path.filters import IEdgeFilter, INodeFilter
-from colav.timespace.plane import Plane
-from colav.obstacles.moving import MovingShip
+from timespace_colav.path.filters import IEdgeFilter, INodeFilter
+from timespace_colav.timespace.plane import Plane
+from timespace_colav.obstacles.moving import MovingShip
 from typing import Dict, Tuple, Optional
 from math import atan2
-from colav.utils.math import ssa
-from colav.colregs.encounters import get_recommendation_for_os, Recommendation
-from colav.utils.mmsi import is_valid_mmsi
+from timespace_colav.utils.math import ssa
+from timespace_colav.colregs.encounters import get_recommendation_for_os, Recommendation
+from timespace_colav.utils.mmsi import is_valid_mmsi
 import logging, numpy as np
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class CourseRateConstraint(IEdgeFilter):
     
     Examples
     --------
-    >>> from colav.utils.math import DEG2RAD
+    >>> from timespace_colav.utils.math import DEG2RAD
     >>> constraint = CourseRateConstraint(DEG2RAD(5))  # 5 deg/s
     >>> valid, info = constraint.is_valid(p1, p2, plane, heading=heading)
     """

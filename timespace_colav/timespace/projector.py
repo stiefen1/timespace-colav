@@ -16,9 +16,9 @@ into a static geometric path planning problem by intersecting the obstacle
 future positions with a timespace plane.
 """
 
-from colav.timespace.plane import Plane
-from colav.obstacles.moving import MovingObstacle, MovingShip
-from colav.path.pwl import PWLTrajectory, PWLPath
+from timespace_colav.timespace.plane import Plane
+from timespace_colav.obstacles.moving import MovingObstacle, MovingShip
+from timespace_colav.path.pwl import PWLTrajectory, PWLPath
 from typing import List, Tuple, Optional
 from shapely import Polygon
 import numpy as np, logging
@@ -196,7 +196,7 @@ class TimeSpaceProjector:
         self._v_des = val
     
 if __name__ == "__main__":
-    from colav.obstacles import MovingObstacle, SHIP, MovingShip
+    from timespace_colav.obstacles import MovingObstacle, SHIP, MovingShip
     import matplotlib.pyplot as plt
 
     obs = MovingShip.from_body((20, -40), 0, 2, 0, 10, 3, degrees=True, du=1, dchi=10)

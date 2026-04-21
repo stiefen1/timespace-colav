@@ -19,7 +19,7 @@ representing clockwise rotation from north.
 
 Examples
 --------
->>> from colav.obstacles import SHIP
+>>> from timespace_colav.obstacles import SHIP
 >>> ship_shape = SHIP(20, 5)
 >>> positioned_ship = get_shape_at_xypsi(
 ...     x=100, y=50, psi=45, shape=ship_shape, degrees=True
@@ -27,7 +27,7 @@ Examples
 """
 
 from typing import List, Tuple
-from colav.utils.math import rotation_matrix
+from timespace_colav.utils.math import rotation_matrix
 import numpy as np
 
 def translate(shape: List[ Tuple[float, float] ], dx: float = 0, dy: float = 0) -> List[ Tuple[float, float]]:
@@ -107,7 +107,7 @@ def get_shape_at_xypsi(x: float, y: float, psi: float, shape: List[ Tuple[float,
         
     Examples
     --------
-    >>> from colav.obstacles import SHIP
+    >>> from timespace_colav.obstacles import SHIP
     >>> ship_at_pos = get_shape_at_xypsi(
     ...     x=100, y=50, psi=45, 
     ...     shape=SHIP(20, 5), degrees=True
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import matplotlib.widgets as widgets
     import numpy as np
-    from colav.obstacles import SHIP
+    from timespace_colav.obstacles import SHIP
 
     # Initial parameters
     initial_loa = 2.0

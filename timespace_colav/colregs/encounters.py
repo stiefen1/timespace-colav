@@ -28,8 +28,8 @@ Implements COLREGS Rules 13-17 for collision avoidance including:
 from enum import Enum
 from typing import Tuple, Dict
 import numpy as np, logging
-from colav.utils.math import wrap_angle_to_pmpi, DEG2RAD, RAD2DEG
-from colav.obstacles.moving import MovingShip
+from timespace_colav.utils.math import wrap_angle_to_pmpi, DEG2RAD, RAD2DEG
+from timespace_colav.obstacles.moving import MovingShip
 logger = logging.getLogger(__name__)
 
 class Encounter(Enum):

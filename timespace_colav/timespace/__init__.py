@@ -15,12 +15,12 @@ COLREGS : Maritime collision regulations compliance
 
 Examples
 --------
->>> from colav.timespace import TimeSpaceProjector, Plane, COLREGS
+>>> from timespace_colav.timespace import TimeSpaceProjector, Plane, COLREGS
 >>> projector = TimeSpaceProjector(desired_speed=10.0)
 >>> static_obstacles = projector.get(start, target, moving_ships)
 >>> 
 >>> # With constraints
->>> from colav.timespace import SpeedConstraint, CourseRateConstraint
+>>> from timespace_colav.timespace import SpeedConstraint, CourseRateConstraint
 >>> constraints = [SpeedConstraint(15.0), CourseRateConstraint(0.1)]
 """
 

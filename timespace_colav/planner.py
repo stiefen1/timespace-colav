@@ -19,15 +19,15 @@ Uses iterative speed reduction to find feasible collision-free paths.
 """
 
 from typing import List, Tuple, Optional, Dict
-from colav.obstacles import MovingShip
-from colav.timespace.projector import TimeSpaceProjector
-from colav.path.planning import PathPlanner
-from colav.path.pwl import PWLPath, PWLTrajectory
-from colav.path.planning import VGPathPlanner
-from colav.timespace.constraints import SpeedConstraint, CourseRateConstraint, COLREGS
-from colav.utils.mmsi import is_valid_mmsi
+from timespace_colav.obstacles import MovingShip
+from timespace_colav.timespace.projector import TimeSpaceProjector
+from timespace_colav.path.planning import PathPlanner
+from timespace_colav.path.pwl import PWLPath, PWLTrajectory
+from timespace_colav.path.planning import VGPathPlanner
+from timespace_colav.timespace.constraints import SpeedConstraint, CourseRateConstraint, COLREGS
+from timespace_colav.utils.mmsi import is_valid_mmsi
 import shapely, logging
-from colav.utils.math import DEG2RAD, RAD2DEG, ssa
+from timespace_colav.utils.math import DEG2RAD, RAD2DEG, ssa
 from math import atan2
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class TimeSpaceColav:
     --------
     Basic collision avoidance setup:
     
-    >>> from colav.obstacles import MovingShip
+    >>> from timespace_colav.obstacles import MovingShip
     >>> planner = TimeSpaceColav(
     ...     desired_speed=10.0,  # 10 m/s
     ...     max_speed=15.0,
@@ -426,6 +426,6 @@ class TimeSpaceColav:
         }
     
 if __name__ == "__main__":
-    import colav, logging
-    colav.configure_logging(level=logging.DEBUG)
-    planner = colav.TimeSpaceColav(3)    
+    import timespace_colav, logging
+    timespace_colav.configure_logging(level=logging.DEBUG)
+    planner = timespace_colav.TimeSpaceColav(3)    

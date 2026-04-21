@@ -1,8 +1,8 @@
-from colav.obstacles import MovingShip
-from colav.planner import TimeSpaceColav
+from timespace_colav.obstacles import MovingShip
+from timespace_colav.planner import TimeSpaceColav
 import matplotlib.pyplot as plt, logging, colav, numpy as np
 from shapely import Polygon, Point
-colav.configure_logging(level=logging.INFO)
+timespace_colav.configure_logging(level=logging.INFO)
 
 # From Course & Speed Over Ground (CSOG)
 ts1 = MovingShip.from_csog(

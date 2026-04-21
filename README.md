@@ -14,7 +14,7 @@ A Python library for maritime collision avoidance using timespace projection and
 
 ### From Source
 ```bash
-git clone https://github.com/yourusername/timespace-colav.git
+git clone https://github.com/yourusername/timespace-timespace_colav.git
 cd timespace-colav
 pip install .
 ```
@@ -27,10 +27,10 @@ pip install -e .
 ## Quick Example
 
 ```python
-import colav
-from colav.scenarios import COLAVEnv, ScenarioRunner
-from colav.obstacles import MovingShip
-from colav.path.pwl import PWLPath
+import timespace_colav
+from timespace_colav.scenarios import COLAVEnv, ScenarioRunner
+from timespace_colav.obstacles import MovingShip
+from timespace_colav.path.pwl import PWLPath
 
 # Create own ship
 own_ship = MovingShip.from_body(
@@ -109,7 +109,7 @@ The library includes comprehensive examples to help you get started:
 
 **Scripts (`examples/scripts/`):**
 - `scenarios_runner.py` - Complete collision avoidance demonstration
-- `test_timespace_colav.py` - Basic functionality testing
+- `test_timespace_timespace_colav.py` - Basic functionality testing
 - `interactive_encounter.py` - Interactive scenario exploration
 - `filters.py` - Enforce trajectory constraints
 
@@ -125,20 +125,20 @@ python examples/scripts/scenarios_runner.py
 
 **Time-Space Projection:**
 ```python
-from colav.timespace import TimeSpaceProjector
+from timespace_colav.timespace import TimeSpaceProjector
 projector = TimeSpaceProjector(desired_speed=10.0)
 static_obstacles = projector.get(start, target, moving_ships)
 ```
 
 **COLREGS Analysis:**
 ```python
-from colav.colregs import get_recommendation_for_os
+from timespace_colav.colregs import get_recommendation_for_os
 recommendation, info = get_recommendation_for_os(own_ship, target_ship)
 ```
 
 **Path Planning:**
 ```python
-from colav.planner import TimeSpaceColav
+from timespace_colav.planner import TimeSpaceColav
 planner = TimeSpaceColav(desired_speed=10.0, colregs=True)
 trajectory, info = planner.get(start, target, obstacles)
 ```
@@ -185,7 +185,7 @@ This library is under active development. The API may change in future versions.
 
 For development setup:
 ```bash
-git clone https://github.com/yourusername/timespace-colav.git
+git clone https://github.com/yourusername/timespace-timespace_colav.git
 cd timespace-colav
 pip install -e ".[dev]"
 ```

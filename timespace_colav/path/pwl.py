@@ -571,7 +571,7 @@ class PWLTrajectory(PWLPath):
         return [(point[0], point[1]) for point in self._linestring.coords]
 
 if __name__ == "__main__":
-    from colav.timespace.projector import TimeSpaceProjector
+    from timespace_colav.timespace.projector import TimeSpaceProjector
     wpts = [
         (0, 0, 0),
         (2, 1, 1),

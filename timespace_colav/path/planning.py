@@ -20,9 +20,9 @@ projection methods.
 from matplotlib.axes import Axes
 from typing import Optional, Tuple, List, Dict
 from shapely import Polygon
-from colav.path.graph import VisibilityGraph
-from colav.path.filters import IEdgeFilter, INodeFilter
-from colav.path.pwl import PWLPath
+from timespace_colav.path.graph import VisibilityGraph
+from timespace_colav.path.filters import IEdgeFilter, INodeFilter
+from timespace_colav.path.pwl import PWLPath
 import networkx as nx, matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 

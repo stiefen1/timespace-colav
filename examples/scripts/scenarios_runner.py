@@ -16,9 +16,9 @@ Run this script to see the collision avoidance framework in action!
 """
 
 import logging, colav, os, pathlib
-from colav.scenarios import COLAVEnv, ScenarioRunner
-from colav.obstacles import MovingShip
-from colav.path.pwl import PWLPath
+from timespace_colav.scenarios import COLAVEnv, ScenarioRunner
+from timespace_colav.obstacles import MovingShip
+from timespace_colav.path.pwl import PWLPath
 from shapely import Polygon, Point
 
 OUTPUT_FOLDER = os.path.join(pathlib.Path(__file__).parent.parent.parent, 'results')
@@ -27,7 +27,7 @@ def create_crossing_scenario():
     """Create a crossing encounter scenario with COLREGS compliance."""
     
     # Configure logging to see what's happening
-    colav.configure_logging(level=logging.ERROR)
+    timespace_colav.configure_logging(level=logging.ERROR)
     
     # Define own ship starting from southwest, heading northeast
     own_ship = MovingShip.from_body(

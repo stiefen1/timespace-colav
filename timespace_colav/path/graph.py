@@ -22,9 +22,9 @@ Integrates with filter systems for constraint enforcement.
 
 import networkx as nx
 from typing import List, Tuple, Optional, Dict
-from colav.path.filters import IEdgeFilter, INodeFilter
+from timespace_colav.path.filters import IEdgeFilter, INodeFilter
 from shapely import Polygon, Point, LineString, MultiPoint 
-from colav.utils.mmsi import is_valid_mmsi
+from timespace_colav.utils.mmsi import is_valid_mmsi
 import matplotlib.pyplot as plt, logging
 logger = logging.getLogger(__name__)
 
@@ -175,7 +175,7 @@ class VisibilityGraph(nx.DiGraph):
     
     With custom filters:
     
-    >>> from colav.path.filters import AngleFilter
+    >>> from timespace_colav.path.filters import AngleFilter
     >>> vg = VisibilityGraph(
     ...     (-5,-5), (15,15), obstacles,
     ...     edge_filters=[AngleFilter()],
@@ -193,7 +193,7 @@ class VisibilityGraph(nx.DiGraph):
     See Also
     --------
     VGPathPlanner : Higher-level path planning interface
-    colav.path.filters : Constraint filter implementations
+    timespace_colav.path.filters : Constraint filter implementations
     """
     
     def __init__(
@@ -383,11 +383,11 @@ class VisibilityGraph(nx.DiGraph):
     
 if __name__ == "__main__":
     # Example usage: path planning around two ship obstacles
-    from colav.obstacles import MovingShip
-    from colav.path.planning import VGPathPlanner
-    from colav.utils.mmsi import generate_realistic_mmsi
-    import colav, logging
-    colav.configure_logging(logging.DEBUG)
+    from timespace_colav.obstacles import MovingShip
+    from timespace_colav.path.planning import VGPathPlanner
+    from timespace_colav.utils.mmsi import generate_realistic_mmsi
+    import timespace_colav, logging
+    timespace_colav.configure_logging(logging.DEBUG)
     
     # Create two ship obstacles
     ship1 = MovingShip((0, 0), 30, (4, 3), 10, 3, degrees=True, mmsi=111)

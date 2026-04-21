@@ -17,10 +17,10 @@ and visualization for realistic maritime collision avoidance scenarios.
 """
 
 from typing import List, Tuple, Optional, Literal
-from colav.obstacles.transform import get_shape_at_xypsi
-from colav.obstacles.shapes import SHIP
-from colav.utils.math import rotation_matrix
-from colav.utils import generate_random_mmsi, is_valid_mmsi
+from timespace_colav.obstacles.transform import get_shape_at_xypsi
+from timespace_colav.obstacles.shapes import SHIP
+from timespace_colav.utils.math import rotation_matrix
+from timespace_colav.utils import generate_random_mmsi, is_valid_mmsi
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt, numpy as np
@@ -505,7 +505,7 @@ class MovingShip(MovingObstacle):
 
 
 if __name__ == "__main__":
-    from colav.obstacles.shapes import SHIP
+    from timespace_colav.obstacles.shapes import SHIP
     import matplotlib.pyplot as plt
 
     # Recommended way for declaring a ship

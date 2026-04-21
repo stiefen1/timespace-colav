@@ -14,9 +14,9 @@ Examples
 --------
 Basic scenario setup:
 
->>> from colav.scenarios import COLAVEnv, ScenarioRunner
->>> from colav.obstacles import MovingShip
->>> from colav.path.pwl import PWLPath
+>>> from timespace_colav.scenarios import COLAVEnv, ScenarioRunner
+>>> from timespace_colav.obstacles import MovingShip
+>>> from timespace_colav.path.pwl import PWLPath
 >>> 
 >>> # Create environment with own ship and obstacles
 >>> env = COLAVEnv(

@@ -15,9 +15,9 @@ Generates animated visualizations, distance plots, and performance metrics
 for comprehensive analysis of collision avoidance behavior and compliance.
 """
 
-from colav.scenarios.env import COLAVEnv
-from colav.path.pwl import PWLPath, PWLTrajectory
-from colav.obstacles.moving import MovingShip, MovingObstacle
+from timespace_colav.scenarios.env import COLAVEnv
+from timespace_colav.path.pwl import PWLPath, PWLTrajectory
+from timespace_colav.obstacles.moving import MovingShip, MovingObstacle
 import tqdm, numpy as np, matplotlib.pyplot as plt, logging, imageio
 from typing import List, Tuple
 from shapely import Polygon, Point
@@ -317,8 +317,8 @@ class ScenarioRunner:
             
 
 if __name__ == "__main__":
-    import colav
-    colav.configure_logging(logging.ERROR)
+    import timespace_colav
+    timespace_colav.configure_logging(logging.ERROR)
 
     env = COLAVEnv(
             MovingShip.from_body((-200, -200), 45, 3, 0, 10, 3, degrees=True),

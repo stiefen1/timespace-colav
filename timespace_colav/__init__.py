@@ -17,9 +17,9 @@ Examples
 --------
 Basic collision avoidance:
 
->>> import colav
->>> planner = colav.TimeSpaceColav(desired_speed=10.0, colregs=True)
->>> ship = colav.MovingShip((100, 0), 90, (5, 0), 8, 3, mmsi=123)
+>>> import timespace_colav
+>>> planner = timespace_colav.TimeSpaceColav(desired_speed=10.0, colregs=True)
+>>> ship = timespace_colav.MovingShip((100, 0), 90, (5, 0), 8, 3, mmsi=123)
 >>> trajectory, info = planner.get((0, 0), (200, 100), [ship])
 """
 
@@ -55,7 +55,7 @@ def get_logger(name: str | None = None) -> _logging.Logger:
 		
 	Examples
 	--------
-	>>> logger = colav.get_logger("planner")
+	>>> logger = timespace_colav.get_logger("planner")
 	>>> logger.info("Planning started")
 	"""
 	base = __name__ if name is None else f"{__name__}.{name}"
@@ -91,9 +91,9 @@ def configure_logging(
 		
 	Examples
 	--------
-	>>> import colav
-	>>> colav.configure_logging(level=colav.logging.DEBUG)
-	>>> logger = colav.get_logger("planner")
+	>>> import timespace_colav
+	>>> timespace_colav.configure_logging(level=timespace_colav.logging.DEBUG)
+	>>> logger = timespace_colav.get_logger("planner")
 	>>> logger.debug("Debug message")  # Now visible
 	"""
 	import sys as _sys

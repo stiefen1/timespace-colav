@@ -16,7 +16,7 @@ Examples
 --------
 Basic moving ship:
 
->>> from colav.obstacles import MovingShip
+>>> from timespace_colav.obstacles import MovingShip
 >>> ship = MovingShip.from_body(
 ...     position=(100, 50), psi=90, u=5, v=0,
 ...     loa=20, beam=5, degrees=True, mmsi=123456789
