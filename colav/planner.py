@@ -18,7 +18,7 @@ Supports COLREGS compliance and good seamanship practices.
 Uses iterative speed reduction to find feasible collision-free paths.
 """
 
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Literal
 from colav.obstacles import MovingShip
 from colav.timespace.projector import TimeSpaceProjector
 from colav.path.planning import PathPlanner
@@ -202,6 +202,8 @@ class TimeSpaceColav:
             ts_in_TSS: bool = False,
             os_in_TSS: bool = False,
             good_seamanship: bool = False,
+            delay: Optional[float] = None,
+            delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric',
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -360,7 +362,9 @@ class TimeSpaceColav:
             projected_obstacles: List[shapely.Polygon] = self.projector.get(
                 p0,
                 pf,
-                buffered_obstacles
+                buffered_obstacles,
+                delay=delay,
+                delay_type=delay_type
             )
 
             # Convert projected (moving) obstacles and shore into dict

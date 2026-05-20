@@ -19,8 +19,8 @@ future positions with a timespace plane.
 from colav.timespace.plane import Plane
 from colav.obstacles.moving import MovingObstacle, MovingShip
 from colav.path.pwl import PWLTrajectory, PWLPath
-from typing import List, Tuple, Optional
-from shapely import Polygon
+from typing import List, Tuple, Optional, Literal
+from shapely import Polygon, unary_union
 import numpy as np, logging
 logger = logging.getLogger(__name__)
 class TimeSpaceProjector:
@@ -82,6 +82,7 @@ class TimeSpaceProjector:
     
     _v_des: float
     _plane: Optional[Plane] = None
+    delay_planes: List[Plane] = []
 
     def __init__(
             self,
@@ -89,7 +90,7 @@ class TimeSpaceProjector:
     ):
         self.v_des = v_des
 
-    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip]) -> List[ Polygon ]:
+    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip], delay: Optional[float] = None, delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric') -> List[ Polygon ]:
         """
         Project moving obstacles into static polygons.
         
@@ -130,16 +131,52 @@ class TimeSpaceProjector:
         dp = ((p_des[1] - p[1])**2 + (p_des[0] - p[0])**2)**0.5
         dt = dp / self._v_des
         self._plane = Plane(p, p_des, 0, dt)
+        projected_obstacles = []   
 
-        # Project moving obstacles
-        projected_obstacles = []    
-        for obs in obstacles:
-            # Compute intersection between moving obstacle and timespace plane
-            projected_vertices, times, valid = self._plane.intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
+        if delay is not None:
+            match delay_type:
+                case 'symmetric':
+                    t01 = -delay
+                    t02 = delay
+                    tf1 = dt - delay
+                    tf2 = dt + delay
+                case 'early':
+                    t01 = -delay
+                    t02 = 0
+                    tf1 = dt - delay
+                    tf2 = dt
+                case 'late':
+                    t01 = 0
+                    t02 = delay
+                    tf1 = dt
+                    tf2 = dt + delay
+                case 'flat':
+                    t01 = t02 = delay
+                    tf1 = tf2 = dt + delay
 
-            # If at least one intersection occurs in the future, obstacle is valid
-            if valid:
-                projected_obstacles.append(Polygon(projected_vertices))
+            self.delay_planes = [Plane(p, p_des, t01, tf1), Plane(p, p_des, t02, tf2)]
+
+            # Project moving obstacles
+            for obs in obstacles:
+                # Compute intersection between moving obstacle and timespace plane
+                projected_vertices_1, times_1, valid_1 = self.delay_planes[0].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
+                projected_vertices_2, times_2, valid_2 = self.delay_planes[1].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
+
+                # If at least one intersection occurs in the future, obstacle is valid
+                if valid_1 and valid_2:
+                    poly1 = Polygon(projected_vertices_1)
+                    poly2 = Polygon(projected_vertices_2)
+                    union_geom = unary_union([poly1, poly2])
+                    projected_obstacles.append(union_geom.convex_hull)
+        else:
+            # Project moving obstacles 
+            for obs in obstacles:
+                # Compute intersection between moving obstacle and timespace plane
+                projected_vertices, times, valid = self._plane.intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
+
+                # If at least one intersection occurs in the future, obstacle is valid
+                if valid:
+                    projected_obstacles.append(Polygon(projected_vertices))
 
         logger.debug(f"{len(projected_obstacles)} obstacles have been projected.")
 
