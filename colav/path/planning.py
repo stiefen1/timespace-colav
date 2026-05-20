@@ -287,6 +287,7 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
         Use has_path() first to check connectivity.
         """
         path_nodes = nx.dijkstra_path(self, source=0, target=-1, weight='weight')
+        self.path_nodes = [self.nodes[node] for node in path_nodes]
         waypoints = [self.nodes[node]["pos"] for node in path_nodes]
         return PWLPath(waypoints)
 
