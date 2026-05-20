@@ -204,6 +204,8 @@ class TimeSpaceColav:
             good_seamanship: bool = False,
             delay: Optional[float] = None,
             delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric',
+            corridor_width: float = 0.0,
+            simplify_corridor: float = 0.0,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -368,9 +370,9 @@ class TimeSpaceColav:
             )
 
             # Convert projected (moving) obstacles and shore into dict
-            projected_obstacles_as_dict = {obs.mmsi: proj_obs for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)} 
+            projected_obstacles_as_dict = {obs.mmsi: proj_obs.buffer(corridor_width/2).simplify(simplify_corridor) for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)} 
             moving_obstacles_as_dict = {obs.mmsi: obs for obs in buffered_obstacles}
-            shore_as_dict = {i+1: self.shore[i] for i in range(len(self.shore))}
+            shore_as_dict = {i+1: self.shore[i].buffer(corridor_width/2).simplify(simplify_corridor) for i in range(len(self.shore))}
 
             # Disable colregs if no solution was found before
             if k >= self.abort_colregs_after_iter:
@@ -411,6 +413,8 @@ class TimeSpaceColav:
 
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)
+
+                traj.corridor_width = corridor_width
 
                 logger.info(f"speed and heading required for COLAV: {traj.get_speed(traj._linestring.coords[-1][2]):.1f} [m/s], {traj.get_heading(traj._linestring.coords[-1][2], degrees=True):.1f} [deg]")
 

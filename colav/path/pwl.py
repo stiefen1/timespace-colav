@@ -8,7 +8,7 @@ Key classes:
 - PWLTrajectory: 3D space-time trajectories with collision analysis
 """
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Literal, Dict
 from shapely import LineString, Point
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt, numpy as np, logging
@@ -73,8 +73,36 @@ class PWLPath:
     Coordinates are assumed to be in a projected coordinate system (e.g., UTM)
     with units in meters.
     """
-    def __init__(self, xy: List[Tuple[float, float]]):
+    def __init__(self, xy: List[Tuple[float, float]], corridor_width: Optional[float] = None):
         self._linestring = LineString(xy)
+        self.corridor_width = corridor_width
+
+    def get_corridor(self, side: Literal['left', 'right', 'both'] = 'both') -> Optional[LineString | Dict[str, LineString]]:
+        if self.corridor_width is not None:
+            if side == 'both':
+                return {
+                    'left': self._linestring.parallel_offset(self.corridor_width / 2, "left"), # type: ignore
+                    'right': self._linestring.parallel_offset(self.corridor_width / 2, "right"), # type: ignore
+                }
+            elif side == 'right':
+                return self._linestring.parallel_offset(self.corridor_width / 2, "right") # type: ignore
+            elif side == 'left':
+                return self._linestring.parallel_offset(self.corridor_width / 2, "left") # type: ignore
+            else:
+                raise ValueError(f"Invalid side {side}. Select a valid side among ['left', 'right', 'both']")
+        return None     
+
+    @property
+    def corridor(self) -> Optional[Dict[str, LineString]]:
+        return self.get_corridor('both') # type: ignore
+
+    @property
+    def corridor_left(self) -> Optional[LineString]:
+        return self.corridor('left') # type: ignore
+
+    @property
+    def corridor_right(self) -> Optional[LineString]:
+        return self.corridor('right') # type: ignore
 
     def get_closest_point(self, x: float, y: float) -> Tuple[float, float]:
         """
@@ -172,7 +200,7 @@ class PWLPath:
         """
         return self.interpolate(self.progression(x, y) + lookahead_distance)
     
-    def plot(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
+    def plot(self, *args, ax: Optional[Axes] = None, corridor: Optional[Literal['left', 'right', 'both']] = None, **kwargs) -> Axes:
         """
         Plot path as connected line segments.
         
@@ -191,6 +219,14 @@ class PWLPath:
         if ax is None:
             _, ax = plt.subplots()
         ax.plot(*self._linestring.coords.xy, *args, **kwargs)
+
+        if corridor is not None:
+            corridor_linestring = self.get_corridor(corridor)
+            if isinstance(corridor_linestring, dict):
+                for key, val in corridor_linestring.items():
+                    ax.plot(*val.coords.xy, *args, **kwargs)
+            elif isinstance(corridor_linestring, LineString):
+                ax.plot(corridor_linestring.coords.xy, *args, **kwargs)
         return ax
     
     def scatter(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
