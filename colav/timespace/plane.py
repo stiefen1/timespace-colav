@@ -176,7 +176,7 @@ class Plane:
         # Compute intersection coordinates according to equations (8.1) and (6.2)
         den = 1e-6 if (den < 0 and robust) else den
         t_i = ((b @ p_i) + bt) / den
-        v_at_t_i = p_i + p_dot * t_i
+        v_at_t_i = p_i + p_dot * max(t_i, 0)
         x_i, y_i = v_at_t_i[0], v_at_t_i[1]
 
         valid = False if t_i < 0 else True
