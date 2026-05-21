@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt, logging, colav, numpy as np
 from shapely import Polygon, Point
 colav.configure_logging(level=logging.INFO)
 
-DELAY = 10
+DELAY = 30
 CORRIDOR_WIDTH = 10
-SIMPLIFY = 1.0
+SIMPLIFY = 0.2
 
 # From Course & Speed Over Ground (CSOG)
 ts1 = MovingShip.from_csog(
@@ -17,19 +17,23 @@ ts1 = MovingShip.from_csog(
     loa=20,                 # length overall [m]
     beam=6,                 # [m]
     degrees=True,           # Whether psi and cog are provided in degrees (True) or radians (False)
-    mmsi=None               # Maritime Mobile Service Identity
+    mmsi=None,              # Maritime Mobile Service Identity
+    dchi=10,
+    du=0.5
 )
 
 # From surge & sway speed
 ts2 = MovingShip.from_body(
-    position=(20, -100),    # (x, y) [m]
+    position=(50, -100),    # (x, y) [m]
     psi=np.pi/8,            # Heading
     u=2,                    # Surge speed [m/s]
     v=0,                    # Sway speed [m/s]
     loa=40,                 # Length overall [m]
     beam=16,                # [m]
     degrees=False,          # Whether psi and cog are provided in degrees (True) or radians (False)
-    mmsi=265041000          # Maritime Mobile Service Identity (Aurora AF Helsingborg ferry)
+    mmsi=265041000,          # Maritime Mobile Service Identity (Aurora AF Helsingborg ferry)
+    dchi=0.5,
+    du=0.5
 )
 
 # Construct fake obstacles as shore: use .buffer to add safety margin.
@@ -40,8 +44,8 @@ shore = [
 
 safety_distance = 10 # Minimal distance w.r.t ship [m] -> very small here, should be at least > length overall
 
-ts1_with_sd = ts1.buffer(safety_distance, minkowski=True).simplify(SIMPLIFY)   # Add safety margin using Minkowski sum
-ts2_with_sd = ts2.buffer(safety_distance, minkowski=True).simplify(SIMPLIFY)   # Add safety margin using Minkowski sum
+ts1_with_sd = ts1.buffer(safety_distance, minkowski=False)#.simplify(SIMPLIFY)   # Add safety margin using Minkowski sum
+ts2_with_sd = ts2.buffer(safety_distance, minkowski=False)#.simplify(SIMPLIFY)   # Add safety margin using Minkowski sum
 shore_with_sd = [Polygon(obs.buffer(safety_distance).simplify(SIMPLIFY).boundary.coords) for obs in shore] # Add safety margin to the shore using Minkowski sum
 
 # Try swapping x values to see the result
@@ -52,8 +56,8 @@ planner = TimeSpaceColav(
     desired_speed=3,            # Desired speed
     distance_threshold=1000,    # Minimal distance to include target ships in trajectory planning
     shore=shore_with_sd,        # All the static obstacles with safety margin
-    max_speed=5,                # Maximum speed
-    max_course_rate=1,          # Max course rate
+    max_speed=10,                # Maximum speed
+    max_course_rate=5,          # Max course rate
     max_iter=10,                # Max number of iterations
     colregs=False                # Whether to account for COLREGs or not
 )
