@@ -402,11 +402,12 @@ class MovingShip(MovingObstacle):
         
         robust_geometry = None
         if self.dchi is not None:
-            poly_left = rotate(shapely.Polygon(self.geometry), self.dchi / 2, origin=self.position, use_radians=not(self.degrees))
-            poly_left_left = rotate(shapely.Polygon(self.geometry), self.dchi, origin=self.position, use_radians=not(self.degrees))
+            center_of_rot = self.geometry[3]
+            poly_left = rotate(shapely.Polygon(self.geometry), self.dchi / 2, origin=center_of_rot, use_radians=not(self.degrees))
+            poly_left_left = rotate(shapely.Polygon(self.geometry), self.dchi, origin=center_of_rot, use_radians=not(self.degrees))
             poly_center = self.geometry
-            poly_right = rotate(shapely.Polygon(self.geometry), -self.dchi / 2, origin=self.position, use_radians=not(self.degrees))
-            poly_right_right = rotate(shapely.Polygon(self.geometry), -self.dchi, origin=self.position, use_radians=not(self.degrees))
+            poly_right = rotate(shapely.Polygon(self.geometry), -self.dchi / 2, origin=center_of_rot, use_radians=not(self.degrees))
+            poly_right_right = rotate(shapely.Polygon(self.geometry), -self.dchi, origin=center_of_rot, use_radians=not(self.degrees))
 
             vertex_0 = poly_center[0]
             vertex_1 = poly_right.exterior.coords[0]
