@@ -162,12 +162,17 @@ class TimeSpaceProjector:
                 projected_vertices_1, times_1, valid_1 = self.delay_planes[0].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
                 projected_vertices_2, times_2, valid_2 = self.delay_planes[1].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
 
+                if not(valid_1) and valid_2:
+                    poly1 = Polygon(obs.geometry)
+                    valid_1 = True
+
                 # If at least one intersection occurs in the future, obstacle is valid
                 if valid_1 and valid_2:
                     poly1 = Polygon(projected_vertices_1)
                     poly2 = Polygon(projected_vertices_2)
                     union_geom = unary_union([poly1, poly2])
                     projected_obstacles.append(union_geom.convex_hull)
+
         else:
             # Project moving obstacles 
             for obs in obstacles:
