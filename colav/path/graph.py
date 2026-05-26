@@ -272,10 +272,10 @@ class VisibilityGraph(nx.DiGraph):
         logger.debug(f"Received {len(obstacles_list)} obstacles, start populating nodes.")
 
         for obs in obstacles_list:
-            if obs.contains(Point(self.p_f)):
-                self.p_f = relocate_colliding_point(
-                    self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance
-                )
+            # if obs.contains(Point(self.p_f)):
+            #     self.p_f = relocate_colliding_point(
+            #         self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance
+            #     )
             if obs.contains(Point(self.p_0)):
                 self.p_0 = relocate_colliding_point(
                     self.p_0, self.p_f, obstacles_list, buffer_distance=relocation_buffer_distance
