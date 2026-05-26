@@ -224,7 +224,10 @@ class PWLPath:
             corridor_linestring = self.get_corridor(corridor)
             if isinstance(corridor_linestring, dict):
                 for key, val in corridor_linestring.items():
-                    ax.plot(*val.coords.xy, *args, **kwargs)
+                    try:
+                        ax.plot(*val.coords.xy, *args, **kwargs)
+                    except Exception as e:
+                        print(f"Error while plotting corridor: {e}")
             elif isinstance(corridor_linestring, LineString):
                 ax.plot(corridor_linestring.coords.xy, *args, **kwargs)
         return ax
