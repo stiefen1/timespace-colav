@@ -90,7 +90,7 @@ class TimeSpaceProjector:
     ):
         self.v_des = v_des
 
-    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip], delay: Optional[float] = None, delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric') -> List[ Polygon ]:
+    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip], delay: Optional[float] = None, delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric', t0: float = 0.0) -> List[ Polygon ]:
         """
         Project moving obstacles into static polygons.
         
@@ -130,29 +130,29 @@ class TimeSpaceProjector:
         # Create timespace plane
         dp = ((p_des[1] - p[1])**2 + (p_des[0] - p[0])**2)**0.5
         dt = dp / self._v_des
-        self._plane = Plane(p, p_des, 0, dt)
+        self._plane = Plane(p, p_des, t0, t0+dt)
         projected_obstacles = []   
 
         if delay is not None:
             match delay_type:
                 case 'symmetric':
-                    t01 = -delay
-                    t02 = delay
-                    tf1 = dt - delay
-                    tf2 = dt + delay
+                    t01 = t0 - delay
+                    t02 = t0 + delay
+                    tf1 = t0 + dt - delay
+                    tf2 = t0 + dt + delay
                 case 'early':
-                    t01 = -delay
-                    t02 = 0
-                    tf1 = dt - delay
-                    tf2 = dt
+                    t01 = t0 - delay
+                    t02 = t0
+                    tf1 = t0 + dt - delay
+                    tf2 = t0 + dt
                 case 'late':
-                    t01 = 0
-                    t02 = delay
-                    tf1 = dt
-                    tf2 = dt + delay
+                    t01 = t0
+                    t02 = t0 + delay
+                    tf1 = t0 + dt
+                    tf2 = t0 + dt + delay
                 case 'flat':
-                    t01 = t02 = delay
-                    tf1 = tf2 = dt + delay
+                    t01 = t02 = t0 + delay
+                    tf1 = tf2 = t0 + dt + delay
 
             self.delay_planes = [Plane(p, p_des, t01, tf1), Plane(p, p_des, t02, tf2)]
 

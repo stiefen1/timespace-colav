@@ -206,6 +206,7 @@ class TimeSpaceColav:
             delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric',
             corridor_width: float = 0.0,
             simplify_corridor: float = 0.0,
+            t0: float = 0.0,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -366,7 +367,8 @@ class TimeSpaceColav:
                 pf,
                 buffered_obstacles,
                 delay=delay,
-                delay_type=delay_type
+                delay_type=delay_type,
+                t0=t0
             )
 
             # Convert projected (moving) obstacles and shore into dict
