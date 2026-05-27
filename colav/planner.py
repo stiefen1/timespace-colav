@@ -356,13 +356,13 @@ class TimeSpaceColav:
         discount_power = 0
         colregs_active = self.colregs
         projected_obstacles = []
-        for k in range(self.max_iter):
+        for k in range(self.max_iter + self.abort_colregs_after_iter):
             # Decrease desired speed at each iteration to find a plane that admits at least one feasible path
             # Alternative method: self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
             # self.projector.v_des = (1 / (1 + 5 * discount_power / self.max_iter)) * self.desired_speed
             self.projector.v_des = ((1-discount_power / self.max_iter)**3) * self.desired_speed
             logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f} (discount power = {discount_power})")
-            discount_power += 1
+            
 
             # Get timespace footprint, i.e. static polygons to be avoided
             projected_obstacles: List[shapely.Polygon] = self.projector.get(
@@ -378,6 +378,17 @@ class TimeSpaceColav:
             projected_obstacles_as_dict = {obs.mmsi: proj_obs.buffer(corridor_width/2).simplify(simplify_corridor) for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)} 
             moving_obstacles_as_dict = {obs.mmsi: obs for obs in buffered_obstacles}
             shore_as_dict = {i+1: self.shore[i].buffer(corridor_width/2).simplify(simplify_corridor) for i in range(len(self.shore))}
+
+            if move_p_0_allowed_after_iter is not None:
+                move_p_0_allowed = discount_power >= move_p_0_allowed_after_iter
+            else:
+                move_p_0_allowed = False
+            if move_p_f_allowed_after_iter is not None:
+                move_p_f_allowed = discount_power >= move_p_f_allowed_after_iter
+            else:
+                move_p_f_allowed = False
+
+            discount_power += 1
 
             # Disable colregs if no solution was found before
             if k >= self.abort_colregs_after_iter:
@@ -395,15 +406,6 @@ class TimeSpaceColav:
                             logger.warning(f"Iteration {k+1}: aborting COLREGS compliance")
                 else:
                     active_node_filters.append(node_filter)
-
-            if move_p_0_allowed_after_iter is not None:
-                move_p_0_allowed = k >= move_p_0_allowed_after_iter
-            else:
-                move_p_0_allowed = False
-            if move_p_f_allowed_after_iter is not None:
-                move_p_f_allowed = k >= move_p_f_allowed_after_iter
-            else:
-                move_p_f_allowed = False
 
             # Create path planner
             self.path_planner = VGPathPlanner(
