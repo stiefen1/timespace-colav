@@ -203,6 +203,8 @@ class VisibilityGraph(nx.DiGraph):
         obstacles: Optional[Dict[int, Polygon]] = None,
         edge_filters: Optional[List[IEdgeFilter]] = None,
         node_filters: Optional[List[INodeFilter]] = None,
+        move_p_0_allowed: bool = True,
+        move_p_f_allowed: bool = False,
         **kwargs
     ):
         """
@@ -239,11 +241,11 @@ class VisibilityGraph(nx.DiGraph):
 
         # Initialize graph and populate with nodes and edges
         super().__init__()
-        self.populate_nodes(**kwargs)
+        self.populate_nodes(move_p_0_allowed=move_p_0_allowed, move_p_f_allowed=move_p_f_allowed, **kwargs)
         self.populate_edges(**kwargs)
         logger.debug(f"Succesfully created VisibilityGraph.")
 
-    def populate_nodes(self, relocation_buffer_distance: float = 1e-3, **kwargs) -> None:
+    def populate_nodes(self, relocation_buffer_distance: float = 1e-3, move_p_0_allowed: bool = True, move_p_f_allowed: bool = False, **kwargs) -> None:
         """
         Add all graph nodes: waypoints and obstacle vertices.
         
@@ -272,14 +274,16 @@ class VisibilityGraph(nx.DiGraph):
         logger.debug(f"Received {len(obstacles_list)} obstacles, start populating nodes.")
 
         for obs in obstacles_list:
-            # if obs.contains(Point(self.p_f)):
-            #     self.p_f = relocate_colliding_point(
-            #         self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance
-            #     )
-            if obs.contains(Point(self.p_0)):
-                self.p_0 = relocate_colliding_point(
-                    self.p_0, self.p_f, obstacles_list, buffer_distance=relocation_buffer_distance
-                )
+            if move_p_f_allowed:
+                if obs.contains(Point(self.p_f)):
+                    self.p_f = relocate_colliding_point(
+                        self.p_f, self.p_0, obstacles_list, buffer_distance=relocation_buffer_distance
+                    )
+            if move_p_0_allowed:
+                if obs.contains(Point(self.p_0)):
+                    self.p_0 = relocate_colliding_point(
+                        self.p_0, self.p_f, obstacles_list, buffer_distance=relocation_buffer_distance
+                    )
 
         # Add start node
         self.add_node(0, pos=self.p_0, id=0, label='start')

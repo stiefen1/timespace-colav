@@ -235,6 +235,8 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
         obstacles: Optional[Dict[int, Polygon]] = None,
         edge_filters: Optional[List[IEdgeFilter]] = None,
         node_filters: Optional[List[INodeFilter]] = None,
+        move_p_0_allowed: bool = True,
+        move_p_f_allowed: bool = False,
         **kwargs
     ):
         IPathPlanner.__init__(self)
@@ -245,6 +247,8 @@ class VGPathPlanner(IPathPlanner, VisibilityGraph):
             obstacles,
             edge_filters,
             node_filters,
+            move_p_0_allowed=move_p_0_allowed,
+            move_p_f_allowed=move_p_f_allowed,
             **kwargs
         )
 

@@ -207,6 +207,8 @@ class TimeSpaceColav:
             corridor_width: float = 0.0,
             simplify_corridor: float = 0.0,
             t0: float = 0.0,
+            move_p_0_allowed_after_iter: Optional[int] = 0,
+            move_p_f_allowed_after_iter: Optional[int] = None,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -394,6 +396,15 @@ class TimeSpaceColav:
                 else:
                     active_node_filters.append(node_filter)
 
+            if move_p_0_allowed_after_iter is not None:
+                move_p_0_allowed = k >= move_p_0_allowed_after_iter
+            else:
+                move_p_0_allowed = False
+            if move_p_f_allowed_after_iter is not None:
+                move_p_f_allowed = k >= move_p_f_allowed_after_iter
+            else:
+                move_p_f_allowed = False
+
             # Create path planner
             self.path_planner = VGPathPlanner(
                 p0,
@@ -407,7 +418,9 @@ class TimeSpaceColav:
                 degrees = degrees,
                 ts_in_TSS = ts_in_TSS,
                 os_in_TSS = os_in_TSS,
-                good_seamanship = good_seamanship
+                good_seamanship = good_seamanship,
+                move_p_0_allowed=move_p_0_allowed,
+                move_p_f_allowed=move_p_f_allowed
             )
 
             if self.path_planner.has_path(): 
