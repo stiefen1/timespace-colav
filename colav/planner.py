@@ -209,6 +209,7 @@ class TimeSpaceColav:
             t0: float = 0.0,
             move_p_0_allowed_after_iter: Optional[int] = 0,
             move_p_f_allowed_after_iter: Optional[int] = None,
+            smooth_radius: Optional[float] = None,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -428,6 +429,9 @@ class TimeSpaceColav:
             if self.path_planner.has_path(): 
                 # Compute optimal path
                 path: PWLPath = self.path_planner.get()
+
+                if smooth_radius is not None:
+                    path = path.smooth(smooth_radius)
 
                 # Parameterize in time to get trajectory 
                 traj: PWLTrajectory = self.projector.add_timestamps(path)

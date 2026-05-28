@@ -11,7 +11,7 @@ Key classes:
 from typing import List, Tuple, Optional, Literal, Dict
 from shapely import LineString, Point
 from matplotlib.axes import Axes
-import matplotlib.pyplot as plt, numpy as np, logging
+import matplotlib.pyplot as plt, numpy as np, logging, math
 logger = logging.getLogger(__name__)
 
 class PWLPath:
@@ -200,6 +200,78 @@ class PWLPath:
         """
         return self.interpolate(self.progression(x, y) + lookahead_distance)
     
+    def smooth(self, radius: float, n_arc_points: int = 20) -> "PWLPath":
+        """
+        Return a new PWLPath where each interior corner is replaced by a
+        circular arc of (at most) the given radius, yielding a G1-continuous path.
+        """
+        waypoints = np.array(self.xy)
+        if len(waypoints) < 3:
+            return PWLPath(self.xy)
+
+        smooth_wpts = [waypoints[0].tolist()]
+
+        for i in range(1, len(waypoints) - 1):
+            P = waypoints[i]
+            A = waypoints[i - 1]
+            B = waypoints[i + 1]
+
+            v_in  = P - A
+            v_out = B - P
+            d_in  = float(np.linalg.norm(v_in))
+            d_out = float(np.linalg.norm(v_out))
+
+            if d_in < 1e-9 or d_out < 1e-9:
+                smooth_wpts.append(P.tolist())
+                continue
+
+            u_in  = v_in  / d_in
+            u_out = v_out / d_out
+
+            cos_gamma = float(np.clip(np.dot(-u_in, u_out), -1.0, 1.0))
+            gamma  = math.acos(cos_gamma)
+            half_g = gamma * 0.5
+            sin_hg = math.sin(half_g)
+            tan_hg = math.tan(half_g)
+
+            if sin_hg < 1e-6:
+                smooth_wpts.append(P.tolist())
+                continue
+
+            d_t = min(radius / tan_hg, 0.5 * d_in, 0.5 * d_out)
+            if d_t < 1e-9:
+                smooth_wpts.append(P.tolist())
+                continue
+
+            r_eff = d_t * tan_hg
+            T1 = P - d_t * u_in
+            T2 = P + d_t * u_out
+
+            bisector = -u_in + u_out
+            b_len = float(np.linalg.norm(bisector))
+            if b_len < 1e-9:
+                smooth_wpts.append(P.tolist())
+                continue
+            C = P + (r_eff / sin_hg) * (bisector / b_len)
+
+            angle1 = math.atan2(float(T1[1] - C[1]), float(T1[0] - C[0]))
+            angle2 = math.atan2(float(T2[1] - C[1]), float(T2[0] - C[0]))
+
+            cross_z = float(u_in[0] * u_out[1] - u_in[1] * u_out[0])
+            if cross_z >= 0:
+                if angle2 <= angle1:
+                    angle2 += 2.0 * math.pi
+            else:
+                if angle2 >= angle1:
+                    angle2 -= 2.0 * math.pi
+
+            for a in np.linspace(angle1, angle2, n_arc_points):
+                smooth_wpts.append([float(C[0] + r_eff * math.cos(a)),
+                                    float(C[1] + r_eff * math.sin(a))])
+
+        smooth_wpts.append(waypoints[-1].tolist())
+        return PWLPath(smooth_wpts, corridor_width=self.corridor_width)
+
     def plot(self, *args, ax: Optional[Axes] = None, corridor: Optional[Literal['left', 'right', 'both']] = None, **kwargs) -> Axes:
         """
         Plot path as connected line segments.
