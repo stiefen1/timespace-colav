@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt, logging, colav, numpy as np
 from shapely import Polygon, Point
 colav.configure_logging(level=logging.INFO)
 
-DELAY = 30
+DELAY = 10
 CORRIDOR_WIDTH = 10
 SIMPLIFY = 0.2
 
@@ -99,7 +99,7 @@ for j, obs in enumerate(shore):
 
 
 if traj is not None:
-    traj.plot(ax=ax, c='red', label="trajectory", corridor='both')
+    traj.plot(ax=ax, label="trajectory", corridor='both')
 
 
 ax.set_xlabel("East [m]")
