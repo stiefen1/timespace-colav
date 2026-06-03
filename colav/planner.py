@@ -211,7 +211,7 @@ class TimeSpaceColav:
             move_p_f_allowed_after_iter: Optional[int] = None,
             smooth_radius: Optional[float] = None,
             max_shrink_dist_per_step: float = 50.0,
-            shkrink_eps: float = 0.1,
+            shrink_eps: float = 0.1,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -388,7 +388,7 @@ class TimeSpaceColav:
 
                     # Shrink just enough (plus a tiny epsilon) instead of fixed -5
                     d_to_boundary = point_0.distance(proj_obs_candidate.boundary)
-                    shrink_step = max(shkrink_eps, min(max_shrink_dist_per_step, d_to_boundary + shkrink_eps))
+                    shrink_step = max(shrink_eps, min(max_shrink_dist_per_step, d_to_boundary + shrink_eps))
                     proj_obs_candidate = shapely.make_valid(proj_obs_candidate.buffer(-shrink_step))
 
                     if proj_obs_candidate.is_empty: # If shrink is invalid, we'll relocate starting position in later stages of the algorithm
