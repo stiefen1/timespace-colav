@@ -210,6 +210,8 @@ class TimeSpaceColav:
             move_p_0_allowed_after_iter: Optional[int] = 0,
             move_p_f_allowed_after_iter: Optional[int] = None,
             smooth_radius: Optional[float] = None,
+            max_shrink_dist_per_step: float = 50.0,
+            shkrink_eps: float = 0.1,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -362,7 +364,7 @@ class TimeSpaceColav:
             # Alternative method: self.projector.v_des = (self.speed_factor**discount_power) * self.desired_speed
             # self.projector.v_des = (1 / (1 + 5 * discount_power / self.max_iter)) * self.desired_speed
             self.projector.v_des = ((1-discount_power / self.max_iter)**3) * self.desired_speed
-            logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.1f} (discount power = {discount_power})")
+            logger.info(f"iteration {k+1}/{self.max_iter} | minimum speed = {self.projector.v_des:.3f} (discount power = {discount_power})")
             
 
             # Get timespace footprint, i.e. static polygons to be avoided
@@ -376,7 +378,25 @@ class TimeSpaceColav:
             )
 
             # Convert projected (moving) obstacles and shore into dict
-            projected_obstacles_as_dict = {obs.mmsi: proj_obs.buffer(corridor_width/2).simplify(simplify_corridor) for obs, proj_obs in zip(buffered_obstacles, projected_obstacles)} 
+            projected_obstacles_as_dict = {}
+            point_0 = shapely.Point(p0)
+            for obs, proj_obs in zip(buffered_obstacles, projected_obstacles):
+                proj_obs_candidate = proj_obs.buffer(corridor_width/2).simplify(simplify_corridor)
+                for _ in range(50): # It should finish in 1-3 iter so 50 is just to make sure we converged
+                    if not point_0.within(proj_obs_candidate):
+                        break
+
+                    # Shrink just enough (plus a tiny epsilon) instead of fixed -5
+                    d_to_boundary = point_0.distance(proj_obs_candidate.boundary)
+                    shrink_step = max(shkrink_eps, min(max_shrink_dist_per_step, d_to_boundary + shkrink_eps))
+                    proj_obs_candidate = shapely.make_valid(proj_obs_candidate.buffer(-shrink_step))
+
+                    if proj_obs_candidate.is_empty: # If shrink is invalid, we'll relocate starting position in later stages of the algorithm
+                        proj_obs_candidate = proj_obs.buffer(corridor_width/2).simplify(simplify_corridor)
+                        break
+
+                projected_obstacles_as_dict[obs.mmsi] = proj_obs_candidate
+            
             moving_obstacles_as_dict = {obs.mmsi: obs for obs in buffered_obstacles}
             shore_as_dict = {i+1: self.shore[i].buffer(corridor_width/2).simplify(simplify_corridor) for i in range(len(self.shore))}
 
@@ -442,7 +462,7 @@ class TimeSpaceColav:
 
                 return traj, {
                     'pf': pf,
-                    'projected_obstacles': projected_obstacles,
+                    'projected_obstacles': list(projected_obstacles_as_dict.values()),
                     'shore': self.shore,
                     'trajectory': traj
                 }  
