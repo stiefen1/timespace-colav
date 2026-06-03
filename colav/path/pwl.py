@@ -9,7 +9,7 @@ Key classes:
 """
 
 from typing import List, Tuple, Optional, Literal, Dict
-from shapely import LineString, Point
+from shapely import LineString, MultiLineString, Point
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt, numpy as np, logging, math
 logger = logging.getLogger(__name__)
@@ -81,13 +81,13 @@ class PWLPath:
         if self.corridor_width is not None:
             if side == 'both':
                 return {
-                    'left': self._linestring.parallel_offset(self.corridor_width / 2, "left"), # type: ignore
-                    'right': self._linestring.parallel_offset(self.corridor_width / 2, "right"), # type: ignore
+                    'left': self._linestring.offset_curve(self.corridor_width / 2), # type: ignore
+                    'right': self._linestring.offset_curve(-self.corridor_width / 2), # type: ignore
                 }
             elif side == 'right':
-                return self._linestring.parallel_offset(self.corridor_width / 2, "right") # type: ignore
+                return self._linestring.offset_curve(-self.corridor_width / 2) # type: ignore
             elif side == 'left':
-                return self._linestring.parallel_offset(self.corridor_width / 2, "left") # type: ignore
+                return self._linestring.offset_curve(self.corridor_width / 2) # type: ignore
             else:
                 raise ValueError(f"Invalid side {side}. Select a valid side among ['left', 'right', 'both']")
         return None     
@@ -290,18 +290,19 @@ class PWLPath:
         """
         if ax is None:
             _, ax = plt.subplots()
-        ax.plot(*self._linestring.coords.xy, *args, **kwargs)
+        ax.plot(*self._linestring.coords.xy, *args, color='blue', **kwargs)
 
         if corridor is not None:
             corridor_linestring = self.get_corridor(corridor)
             if isinstance(corridor_linestring, dict):
                 for key, val in corridor_linestring.items():
-                    try:
-                        ax.plot(*val.coords.xy, *args, **kwargs)
-                    except Exception as e:
-                        print(f"Error while plotting corridor: {e}")
+                    if isinstance(val, MultiLineString):
+                        for geom in val.geoms:
+                            ax.plot(*geom.coords.xy, '--', *args, color='blue', **kwargs)
+                    else:
+                        ax.plot(*val.coords.xy, '--', *args, color='blue', **kwargs)
             elif isinstance(corridor_linestring, LineString):
-                ax.plot(corridor_linestring.coords.xy, *args, **kwargs)
+                ax.plot(corridor_linestring.coords.xy, '--', *args, color='blue', **kwargs)
         return ax
     
     def scatter(self, *args, ax: Optional[Axes] = None, **kwargs) -> Axes:
