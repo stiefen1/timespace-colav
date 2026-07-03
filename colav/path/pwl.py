@@ -12,6 +12,8 @@ from typing import List, Tuple, Optional, Literal, Dict
 from shapely import LineString, MultiLineString, Point
 from matplotlib.axes import Axes
 import matplotlib.pyplot as plt, numpy as np, logging, math
+from shapely.ops import substring
+
 logger = logging.getLogger(__name__)
 
 class PWLPath:
@@ -73,9 +75,16 @@ class PWLPath:
     Coordinates are assumed to be in a projected coordinate system (e.g., UTM)
     with units in meters.
     """
-    def __init__(self, xy: List[Tuple[float, float]], corridor_width: Optional[float] = None):
+    def __init__(self, xy: List[Tuple], corridor_width: Optional[float] = None):
         self._linestring = LineString(xy)
         self.corridor_width = corridor_width
+
+    def trim(self, lim: Tuple[float, float], normalized: bool = True) -> "PWLPath":
+        """
+        Trim PWLPath to only keep part between lim[0] and lim[1].
+        """
+        sub = substring(self._linestring, lim[0], lim[1], normalized=normalized)
+        return PWLPath(list(sub.coords))
 
     def get_corridor(self, side: Literal['left', 'right', 'both'] = 'both') -> Optional[LineString | Dict[str, LineString]]:
         if self.corridor_width is not None:
@@ -430,6 +439,30 @@ class PWLTrajectory(PWLPath):
         super().__init__([(point[0], point[1]) for point in xyt])
         # Override with 3D linestring for time operations
         self._linestring = LineString(xyt)
+
+    def delay(self, dt: float) -> None:
+        self = PWLTrajectory([(x, y, t+dt) for x, y, t in self._linestring.coords])
+
+    def trim(self, lim: Tuple[float, float], normalized: bool = True, time: bool = False) -> "PWLTrajectory":
+        """
+        Trim PWLPath to only keep part between lim[0] and lim[1].
+        """
+        if time:
+            if normalized:
+                coords = list(self._linestring.coords)
+                t_start, t_end = coords[0][2], coords[-1][2]
+                t0 = t_start + lim[0] * (t_end - t_start)
+                tf = t_start + lim[1] * (t_end - t_start)
+            else:
+                t0, tf = lim
+
+            assert tf > t0, f"tf must be > t0. Got tf={tf:.3f} <= t0={t0:.3f}"
+            p0, pf = self(t0), self(tf)
+            lim = self.progression(*p0, normalized=True), self.progression(*pf, normalized=True)
+
+        sub = substring(self._linestring, lim[0], lim[1], normalized=True if time else normalized)
+        print("sub: ", list(sub.coords), lim)
+        return PWLTrajectory(list(sub.coords)) # type: ignore
 
     def __call__(self, t: float) -> Tuple[float, float]:
         """

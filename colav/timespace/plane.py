@@ -152,7 +152,7 @@ class Plane:
         bx, by, bt = self._b_ts.tolist()
         return bx*x + by*y + bt
 
-    def intersection_with_single_vertex(self, vertex: Tuple[float, float], velocity: Tuple[float, float], robust: bool = False) -> Tuple[Tuple[float, float], float, bool]:
+    def intersection_with_single_vertex(self, vertex: Tuple[float, float], velocity: Tuple[float, float], robust: bool = False, time_at_p0_of_moving_ships: float = 0.0) -> Tuple[Tuple[float, float], float, bool]:
         """
         Compute the intersection between timespace plane and a single vertex moving at a given (constant) velocity.
 
@@ -175,7 +175,7 @@ class Plane:
 
         # Compute intersection coordinates according to equations (8.1) and (6.2)
         den = 1e-6 if (den < 0 and robust) else den
-        t_i = ((b @ p_i) + bt) / den
+        t_i = ((b @ p_i) + bt - time_at_p0_of_moving_ships) / den 
         v_at_t_i = p_i + p_dot * max(t_i, 0)
         x_i, y_i = v_at_t_i[0], v_at_t_i[1]
 
@@ -183,7 +183,7 @@ class Plane:
                 
         return (x_i, y_i), t_i, valid
 
-    def intersection(self, vertices: List[ Tuple[float, float] ], velocities: List[ Tuple[float, float] ], robust: bool = False) -> Tuple[ List[ Tuple[float, float] ], List[float], bool ]:
+    def intersection(self, vertices: List[ Tuple[float, float] ], velocities: List[ Tuple[float, float] ], robust: bool = False, time_at_p0_of_moving_ships: float = 0.0) -> Tuple[ List[ Tuple[float, float] ], List[float], bool ]:
         """
         Compute the intersection between timespace plane and a list of vertices moving at a given (constant) velocity.
 
@@ -191,7 +191,7 @@ class Plane:
         """
         projected_vertices, times, all_valid = [], [], False
         for vertex, velocity in zip(vertices, velocities):
-            p_i, t_i, valid = self.intersection_with_single_vertex(vertex, velocity, robust=robust)
+            p_i, t_i, valid = self.intersection_with_single_vertex(vertex, velocity, robust=robust, time_at_p0_of_moving_ships=time_at_p0_of_moving_ships)
             projected_vertices.append(p_i)
             times.append(t_i)
             all_valid = all_valid or valid

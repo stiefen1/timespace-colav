@@ -90,7 +90,7 @@ class TimeSpaceProjector:
     ):
         self.v_des = v_des
 
-    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip], delay: Optional[float] = None, delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric', t0: float = 0.0) -> List[ Polygon ]:
+    def get(self, p: Tuple[float, float], p_des: Tuple[float, float], obstacles: List[MovingShip], delay: Optional[float] = None, delay_type: Literal['symmetric', 'late', 'early', 'flat'] = 'symmetric', t0: float = 0.0, time_at_p0_of_moving_ships: float = 0.0) -> List[ Polygon ]:
         """
         Project moving obstacles into static polygons.
         
@@ -159,8 +159,8 @@ class TimeSpaceProjector:
             # Project moving obstacles
             for obs in obstacles:
                 # Compute intersection between moving obstacle and timespace plane
-                projected_vertices_1, times_1, valid_1 = self.delay_planes[0].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
-                projected_vertices_2, times_2, valid_2 = self.delay_planes[1].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
+                projected_vertices_1, times_1, valid_1 = self.delay_planes[0].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None, time_at_p0_of_moving_ships=time_at_p0_of_moving_ships)
+                projected_vertices_2, times_2, valid_2 = self.delay_planes[1].intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None, time_at_p0_of_moving_ships=time_at_p0_of_moving_ships)
 
                 # if not(valid_1) and valid_2:
                 #     poly1 = Polygon(obs.geometry)
@@ -182,7 +182,7 @@ class TimeSpaceProjector:
             # Project moving obstacles 
             for obs in obstacles:
                 # Compute intersection between moving obstacle and timespace plane
-                projected_vertices, times, valid = self._plane.intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None)
+                projected_vertices, times, valid = self._plane.intersection(obs.robust_geometry or obs.geometry, obs.vertices_velocity, robust=obs.robust_geometry is not None, time_at_p0_of_moving_ships=time_at_p0_of_moving_ships)
 
                 # If at least one intersection occurs in the future, obstacle is valid
                 if valid:

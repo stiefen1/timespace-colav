@@ -214,6 +214,7 @@ class TimeSpaceColav:
             shrink_eps: float = 0.1,
             exponent_v_des_of_iter: float = 3.0, 
             v_min: float = 0.0,
+            time_at_p0_of_moving_ships: Optional[float] = None,
             **kwargs
         ) -> Tuple[Optional[PWLTrajectory], Dict]:
         """
@@ -341,6 +342,8 @@ class TimeSpaceColav:
         MovingShip : Moving obstacle representation and methods
         """
         desired_heading = atan2(pf[0]-p0[0], pf[1]-p0[1])
+        if time_at_p0_of_moving_ships is None:
+            time_at_p0_of_moving_ships = t0
 
         if heading is not None:
             heading = DEG2RAD(heading) if degrees else heading
@@ -376,7 +379,8 @@ class TimeSpaceColav:
                 buffered_obstacles,
                 delay=delay,
                 delay_type=delay_type,
-                t0=t0
+                t0=t0,
+                time_at_p0_of_moving_ships=time_at_p0_of_moving_ships
             )
 
             # Convert projected (moving) obstacles and shore into dict
